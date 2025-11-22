@@ -1,0 +1,107 @@
+CITYCARE DEMO SCRIPT - 90 Second Walkthrough
+============================================
+
+This script guides judges through the key features of CityCare.
+
+SETUP (Before Demo)
+-------------------
+1. Ensure database is imported and seeded
+2. Start PHP server: php -S localhost:8000 (from public directory)
+3. Have OpenRouter API key configured (optional but recommended)
+
+DEMO FLOW (90 seconds)
+-----------------------
+
+[0:00-0:15] LANDING PAGE & LOGIN
+- Show landing page (http://localhost:8000)
+- Highlight: Problem → Solution → How it Works
+- Click "Login"
+- Login as: user1 / DemoPass123!
+
+[0:15-0:30] CIVILIAN: SUBMIT REPORT
+- Click "Submit Report"
+- Show form with:
+  * Title field
+  * Category dropdown
+  * Description textarea
+  * Photo upload
+  * Map for location selection
+- Click "Get AI Assistance" button
+  * Explain: AI analyzes description and suggests title, category, summary
+  * Show AI suggestions pre-filling form
+- Click on map to set location (or use "Use My Location")
+- Upload a photo
+- Click "Submit Report"
+- Show success message
+
+[0:30-0:45] CIVILIAN: DASHBOARD
+- Redirected to dashboard
+- Show table of user's reports
+- Show map with colored markers (status-based)
+- Click on a report to view details
+- Show: Edit capability (if not verified), Mark as Resolved
+
+[0:45-1:00] MUNICIPALITY: DASHBOARD
+- Logout, then login as: muni_demo / DemoPass123!
+- Show municipality dashboard
+- Highlight:
+  * Large map with all active reports
+  * Clustered markers (if many reports)
+  * Color-coded by status
+  * AI Priority Queue (right sidebar)
+- Explain: Reports sorted by AI-assessed urgency (1-5)
+- Click on a high-priority report (Priority 4-5)
+- Show popup with report details, photo thumbnail
+
+[1:00-1:15] MUNICIPALITY: REPORT MANAGEMENT
+- Click "View Details" on a report
+- Show report view page with:
+  * Full description and photo
+  * AI priority badge with reason
+  * Location map
+- Demonstrate actions:
+  * Assign to Authority (select authority, set due date)
+  * Update Status (Pending → In-Progress → Fixed)
+  * Re-run AI Priority Analysis
+- Explain: AI considers keywords like "dangerous", "school", "gas leak"
+
+[1:15-1:30] ADMIN: ADMIN PANEL
+- Logout, then login as: admin_demo / DemoPass123!
+- Show admin panel with statistics:
+  * Total Reports
+  * Pending Reports
+  * Total Users
+  * Total Authorities
+- Show:
+  * Recent Reports table
+  * Users list
+  * Authority Management
+- Create a new authority (demonstrate CRUD)
+
+KEY POINTS TO EMPHASIZE
+------------------------
+✓ Pure PHP (no frameworks) - demonstrates core PHP skills
+✓ AI Integration - OpenRouter API for intelligent prioritization
+✓ Map Integration - Leaflet with clustering for many reports
+✓ BLOB Image Storage - images stored in database
+✓ Security - CSRF tokens, prepared statements, password hashing
+✓ Responsive Design - works on mobile and desktop
+✓ Role-based Access - three distinct user experiences
+
+TECHNICAL HIGHLIGHTS
+--------------------
+- PDO prepared statements (SQL injection prevention)
+- Session-based authentication with regeneration
+- AI caching to reduce API calls
+- Cluster detection algorithm (Haversine distance)
+- BLOB to base64 conversion for image display
+- Mobile-first responsive design
+
+FINAL NOTES
+-----------
+- All code is well-commented
+- Database schema is normalized with proper foreign keys
+- Error handling throughout
+- Graceful degradation if AI API unavailable
+- Production-ready security practices
+
