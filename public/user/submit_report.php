@@ -21,11 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (!empty($description)) {
         $aiSuggestions = callAIAssistant($description);
         if (!$aiSuggestions) {
-            // Check if API key is configured
-            if ((defined('GOOGLE_AI_API_KEY') && (GOOGLE_AI_API_KEY === 'your-google-ai-api-key-here' || empty(GOOGLE_AI_API_KEY))) || !defined('GOOGLE_AI_API_KEY')) {
-                $error = 'AI assistant requires a Google AI Studio API key. Please configure GOOGLE_AI_API_KEY in config.php';
+            // Check if GROQ API key is configured
+            if (!defined('GROQ_API_KEY') || GROQ_API_KEY === '') {
+                $error = 'AI assistant requires a GROQ API key. Please configure GROQ_API_KEY in config.php';
             } else {
-                $error = 'AI assistant is currently unavailable. Please check your API key and try again, or fill in the form manually.';
+                $error = 'AI assistant is currently unavailable. Please check your GROQ API key and try again, or fill in the form manually.';
             }
         }
     }
@@ -204,10 +204,11 @@ $csrfToken = generateCSRFToken();
                 // Initialize map centered on Pristina, Kosovo
                 map = L.map('map').setView([42.6026, 20.9030], 13);
                 
-                // Add OpenStreetMap tiles
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{s}/{z}/{x}/{y}.png', {
+                // Add OpenStreetMap tiles (correct template)
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
-                    maxZoom: 19
+                    maxZoom: 19,
+                    subdomains: ['a','b','c']
                 }).addTo(map);
             
             // Click handler to set location
@@ -232,19 +233,26 @@ $csrfToken = generateCSRFToken();
                     navigator.geolocation.getCurrentPosition(function(position) {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
-                        
+
                         map.setView([lat, lng], 15);
-                        
+
                         document.getElementById('latitude').value = lat;
                         document.getElementById('longitude').value = lng;
                         document.getElementById('latDisplay').textContent = lat.toFixed(7);
                         document.getElementById('lngDisplay').textContent = lng.toFixed(7);
-                        
+
                         if (marker) {
                             map.removeLayer(marker);
                         }
                         marker = L.marker([lat, lng]).addTo(map);
-                    });
+                    }, function(err) {
+                        console.error('Geolocation error', err);
+                        if (err.code === err.PERMISSION_DENIED) {
+                            alert('Permission denied. Please allow location access in your browser.');
+                        } else {
+                            alert('Unable to retrieve your location.');
+                        }
+                    }, { enableHighAccuracy: true, timeout: 10000 });
                 } else {
                     alert('Geolocation is not supported by your browser.');
                 }

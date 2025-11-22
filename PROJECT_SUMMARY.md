@@ -8,7 +8,7 @@ This is a complete, production-ready CityCare platform built with pure PHP (no f
 - `db.php` - PDO database connection singleton
 - `auth.php` - Session-based authentication and authorization
 - `helpers.php` - Security helpers (CSRF, XSS protection, file upload)
-- `ai.php` - OpenRouter API integration for AI features
+ - `ai.php` - GROQ API integration for AI features
 - `reports.php` - Report CRUD operations
 - `authorities.php` - Authority management
 
@@ -43,8 +43,8 @@ This is a complete, production-ready CityCare platform built with pure PHP (no f
 - Municipality Head: View all reports, AI priority queue, assign to authorities, update status
 - Admin: Full access, user management, authority management
 
-✅ **AI Integration**
-- OpenRouter API for priority scoring (1-5 scale)
+- ✅ **AI Integration**
+- GROQ API for priority scoring (1-5 scale)
 - User assistance for report creation (title, category, summary suggestions)
 - AI response caching to reduce API calls
 - Graceful degradation if API unavailable

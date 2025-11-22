@@ -179,8 +179,10 @@ try {
     echo "\nRunning AI priority analysis...\n";
     require_once __DIR__ . '/../app/ai.php';
     
-    // Check if API key is configured
-    if (defined('GOOGLE_AI_API_KEY') && GOOGLE_AI_API_KEY !== 'your-google-ai-api-key-here' && !empty(GOOGLE_AI_API_KEY)) {
+    // Check if GROQ AI API key is configured
+    $groqConfigured = defined('GROQ_API_KEY') && GROQ_API_KEY !== '';
+
+    if ($groqConfigured) {
         echo "  Running AI analysis for reports...\n";
         
         $reports = [
@@ -202,8 +204,8 @@ try {
             }
         }
     } else {
-        echo "  ⚠ Google AI Studio API key not configured. Skipping AI analysis.\n";
-        echo "    To enable AI features, set GOOGLE_AI_API_KEY in config.php\n";
+        echo "  ⚠ GROQ API key not configured. Skipping AI analysis.\n";
+        echo "    To enable AI features, set GROQ_API_KEY in config.php\n";
     }
     
     echo "\n✓ Database seeding completed successfully!\n\n";

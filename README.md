@@ -5,7 +5,7 @@ A complete, production-like city reporting platform built with pure PHP, MySQL, 
 ## Features
 
 - **Three User Roles**: Civilian (report submission), Municipality Head (management), Admin (full access)
-- **AI Integration**: OpenRouter-compatible API for intelligent report prioritization and user assistance
+ - **AI Integration**: GROQ API for intelligent report prioritization and user assistance
 - **Map Integration**: Leaflet maps with OpenStreetMap for location selection and visualization
 - **Image Storage**: BLOB storage in MySQL database
 - **Session-based Authentication**: Secure login with password hashing
@@ -18,7 +18,7 @@ A complete, production-like city reporting platform built with pure PHP, MySQL, 
 - MySQL 5.7 or higher (or MariaDB 10.2+)
 - phpMyAdmin (for database import)
 - Web server (Apache/Nginx) or PHP built-in server
-- OpenRouter API key (optional, for AI features)
+ - GROQ API key (optional, for AI features)
 
 ## Installation
 
@@ -46,9 +46,9 @@ A complete, production-like city reporting platform built with pure PHP, MySQL, 
    define('DB_USER', 'root');        // Your MySQL username
    define('DB_PASS', '');            // Your MySQL password
    
-   // OpenRouter API (get key from https://openrouter.ai/)
-   define('OPENROUTER_API_KEY', 'your-api-key-here');
-   define('OPENROUTER_MODEL', 'openai/gpt-4o-mini');
+   // GROQ API (get key from https://groq.com/)
+   define('GROQ_API_KEY', 'your-api-key-here');
+   define('GROQ_MODEL', 'groq-alpha');
    
    define('APP_URL', 'http://localhost:8000');
    ```
@@ -112,7 +112,7 @@ After running the seed script, you can login with:
 ```
 CityCare/
 ├── app/                    # Core application logic
-│   ├── ai.php             # AI/OpenRouter integration
+│   ├── ai.php             # AI/GROQ integration
 │   ├── auth.php           # Authentication functions
 │   ├── db.php             # Database connection
 │   ├── helpers.php        # Utility functions
@@ -147,24 +147,22 @@ CityCare/
 └── README.md           # This file
 ```
 
-## AI Features
+### AI Features
 
-### OpenRouter Integration
-
-The platform uses OpenRouter API for AI-powered features:
+The platform uses GROQ API for AI-powered features:
 
 1. **Priority Scoring**: Automatically analyzes reports and assigns priority (1-5) based on urgency
 2. **User Assistant**: Helps users create better reports by suggesting titles, categories, and summaries
 
-### Setting Up OpenRouter
+### Setting Up GROQ
 
-1. Sign up at https://openrouter.ai/
+1. Sign up at https://groq.com/
 2. Get your API key from the dashboard
 3. Add the key to `config.php`:
    ```php
-   define('OPENROUTER_API_KEY', 'sk-or-v1-...');
+   define('GROQ_API_KEY', 'gsk_...');
    ```
-4. Choose a model (default: `openai/gpt-4o-mini`)
+4. Choose a model (default: `groq-alpha`)
 
 **Note:** AI features will gracefully degrade if the API key is not configured. The platform will work without AI, but prioritization will be manual.
 
@@ -199,8 +197,7 @@ To share your local development server:
 - Check PHP `upload_max_filesize` and `post_max_size` settings
 - Verify `MAX_UPLOAD_SIZE` in `config.php` (default: 5MB)
 
-### AI Features Not Working
-- Verify OpenRouter API key is set correctly
+- Verify GROQ API key is set correctly
 - Check API key has sufficient credits
 - Review error logs in PHP error log
 

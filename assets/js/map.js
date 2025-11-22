@@ -14,9 +14,11 @@
 function initMap(containerId, lat = 42.6026, lng = 20.9030, zoom = 13) {
     const map = L.map(containerId).setView([lat, lng], zoom);
     
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{s}/{z}/{x}/{y}.png', {
+    // Correct OSM tile URL and subdomains (Leaflet will replace {s} with a/b/c)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
-        maxZoom: 19
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
     }).addTo(map);
     
     return map;

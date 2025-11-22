@@ -197,9 +197,10 @@ $statuses = $stmt->fetchAll();
                 const map = L.map('map').setView([42.6026, 20.9030], 13);
                 
                 // Add OpenStreetMap tiles
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{s}/{z}/{x}/{y}.png', {
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
-                    maxZoom: 19
+                    maxZoom: 19,
+                    subdomains: ['a','b','c']
                 }).addTo(map);
             
             const markers = L.markerClusterGroup();

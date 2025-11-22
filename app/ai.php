@@ -1,6 +1,6 @@
 <?php
 /**
- * AI Integration with Google AI Studio
+ * AI Integration with GROQ
  * Handles priority scoring and user assistance features
  */
 
@@ -8,111 +8,113 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/../config.php';
 
 /**
- * Call Google AI Studio API for chat completions
- * Returns response in OpenRouter-compatible format or false on error
+ * Call GROQ API for chat completions
+ * Returns response in the application's normalized format (choices[0].message.content)
+ * or an array containing an 'error' key on failure.
  */
 function callOpenRouterAPI($messages, $model = null) {
-    // Keep function name for compatibility, but it now calls Google AI Studio
-    
+    // GROQ-only implementation: use GROQ_API_KEY and GROQ_API_URL
+    $groqKey = defined('GROQ_API_KEY') ? GROQ_API_KEY : '';
+    if (empty($groqKey)) {
+        error_log('GROQ API key not configured');
+        return ['error' => 'no_api_key', 'message' => 'GROQ API key not configured'];
+    }
+
+    // Default to GROQ_MODEL if not provided
     if ($model === null) {
-        $model = defined('GOOGLE_AI_MODEL') ? GOOGLE_AI_MODEL : 'gemini-pro';
+        $model = defined('GROQ_MODEL') ? GROQ_MODEL : 'groq-alpha';
     }
-    
-    $apiKey = defined('GOOGLE_AI_API_KEY') ? GOOGLE_AI_API_KEY : '';
-    if (empty($apiKey) || $apiKey === 'your-google-ai-api-key-here') {
-        error_log("Google AI Studio API key not configured");
-        return false;
+
+    // Prepare messages for Groq (send as messages array if available)
+    $gMessages = [];
+    foreach ($messages as $m) {
+        $role = $m['role'] ?? 'user';
+        $content = $m['content'] ?? '';
+        $gMessages[] = ['role' => $role, 'content' => $content];
     }
-    
-    // Convert messages format to Google AI format
-    // Google AI uses contents array with parts containing text
-    // System messages are prepended to the first user message
-    $contents = [];
-    $systemInstruction = '';
-    $firstUserMessage = true;
-    
-    foreach ($messages as $msg) {
-        if ($msg['role'] === 'system') {
-            $systemInstruction = $msg['content'];
-        } elseif ($msg['role'] === 'user') {
-            // Prepend system instruction to first user message if present
-            $userText = $msg['content'];
-            if ($firstUserMessage && !empty($systemInstruction)) {
-                $userText = $systemInstruction . "\n\n" . $userText;
-                $firstUserMessage = false;
-            }
-            $contents[] = [
-                'role' => 'user',
-                'parts' => [['text' => $userText]]
-            ];
-        } elseif ($msg['role'] === 'assistant') {
-            $contents[] = [
-                'role' => 'model',
-                'parts' => [['text' => $msg['content']]]
-            ];
-        }
-    }
-    
-    // Build request data
-    $data = [
-        'contents' => $contents
-    ];
-    
-    // Google AI Studio endpoint (use v1beta for better compatibility)
-    $url = 'https://generativelanguage.googleapis.com/v1beta/models/' . $model . ':generateContent?key=' . $apiKey;
-    
+
+    $payload = ['model' => $model, 'messages' => $gMessages];
+
+    $url = defined('GROQ_API_URL') ? rtrim(GROQ_API_URL, '/') : 'https://api.groq.com/v1/chat/completions';
+
     $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json'
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $groqKey
     ]);
-    
-    // Set timeout
     curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-    
+
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
+    $curlError = curl_error($ch);
     curl_close($ch);
-    
-    if ($error) {
-        error_log("Google AI Studio API curl error: " . $error);
-        return ['error' => 'curl_error', 'message' => $error];
+
+    if ($curlError) {
+        error_log("GROQ API curl error: {$curlError}");
+        return ['error' => 'curl_error', 'message' => $curlError];
     }
-    
-    if ($httpCode !== 200) {
-        $errorResponse = json_decode($response, true);
-        $errorMsg = $errorResponse['error']['message'] ?? $response;
-        error_log("Google AI Studio API HTTP error: " . $httpCode . " - " . $errorMsg);
-        return ['error' => 'http_error', 'code' => $httpCode, 'message' => $errorMsg];
+
+    if ($httpCode !== 200 && $httpCode !== 201) {
+        $decodedErr = json_decode($response, true);
+        $msg = $decodedErr['error']['message'] ?? $decodedErr['message'] ?? $response;
+        error_log("GROQ API HTTP error {$httpCode}: " . substr($msg, 0, 1000));
+        return ['error' => 'http_error', 'code' => $httpCode, 'message' => $msg];
     }
-    
+
     $decoded = json_decode($response, true);
     if (!$decoded) {
-        error_log("Google AI Studio API JSON decode error. Response: " . substr($response, 0, 500));
+        error_log("GROQ API JSON decode error. Response: " . substr($response, 0, 500));
         return ['error' => 'json_error', 'message' => 'Invalid JSON response'];
     }
-    
-    // Convert Google AI response to OpenRouter-compatible format
-    if (isset($decoded['candidates'][0]['content']['parts'][0]['text'])) {
-        $text = $decoded['candidates'][0]['content']['parts'][0]['text'];
-        return [
-            'choices' => [
-                [
-                    'message' => [
-                        'content' => $text,
-                        'role' => 'assistant'
-                    ]
-                ]
-            ]
-        ];
+
+    // Try to extract text from common shapes
+    $extracted = null;
+    if (isset($decoded['choices'][0]['message']['content']) && is_string($decoded['choices'][0]['message']['content'])) {
+        $extracted = $decoded['choices'][0]['message']['content'];
     }
-    
-    error_log("Google AI Studio API: Unexpected response format");
-    return ['error' => 'format_error', 'message' => 'Unexpected response format'];
+    if ($extracted === null && isset($decoded['choices'][0]['message']['content'][0]['text'])) {
+        $extracted = $decoded['choices'][0]['message']['content'][0]['text'];
+    }
+    if ($extracted === null && isset($decoded['choices'][0]['text'])) {
+        $extracted = $decoded['choices'][0]['text'];
+    }
+
+    // fallback: search for first non-empty string in response
+    if ($extracted === null) {
+        try {
+            $it = new RecursiveIteratorIterator(new RecursiveArrayIterator($decoded));
+            foreach ($it as $v) {
+                if (is_string($v) && strlen(trim($v)) > 0) { $extracted = $v; break; }
+            }
+        } catch (Exception $e) {
+            // ignore
+        }
+    }
+
+    if ($extracted !== null) {
+        return ['choices' => [['message' => ['content' => $extracted, 'role' => 'assistant']]]];
+    }
+    return ['error' => 'format_error', 'message' => 'Unexpected response format', 'raw' => $decoded];
 }
+
+/**
+ * List available Google Generative models for the configured API key
+ * Returns array of model names or an array with 'error' on failure
+ */
+function listAvailableGoogleModels() {
+    // Model listing is not implemented for GROQ in this project.
+    // Return a helpful error message so callers can fall back or log diagnostics.
+    return ['error' => 'not_supported', 'message' => 'Listing available models is not supported for GROQ in this integration.'];
+}
+
+/**
+ * List available Google Generative models for the configured API key
+ * Returns array of model names or an array with 'error' on failure
+ */
+
 
 /**
  * Check cache for AI response (simple in-memory cache, can be enhanced with Redis/Memcached)

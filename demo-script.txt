@@ -7,7 +7,7 @@ SETUP (Before Demo)
 -------------------
 1. Ensure database is imported and seeded
 2. Start PHP server: php -S localhost:8000 (from public directory)
-3. Have OpenRouter API key configured (optional but recommended)
+3. Have GROQ API key configured (optional but recommended)
 
 DEMO FLOW (90 seconds)
 -----------------------
@@ -81,7 +81,7 @@ DEMO FLOW (90 seconds)
 KEY POINTS TO EMPHASIZE
 ------------------------
 ✓ Pure PHP (no frameworks) - demonstrates core PHP skills
-✓ AI Integration - OpenRouter API for intelligent prioritization
+✓ AI Integration - GROQ API for intelligent prioritization
 ✓ Map Integration - Leaflet with clustering for many reports
 ✓ BLOB Image Storage - images stored in database
 ✓ Security - CSRF tokens, prepared statements, password hashing

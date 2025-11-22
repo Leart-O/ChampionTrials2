@@ -10,11 +10,19 @@ define('DB_NAME', 'citycare');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
-// Google AI Studio API Configuration
-// Get your API key from https://aistudio.google.com/app/apikey
-define('GOOGLE_AI_API_KEY', 'AIzaSyAtQkTKd2JoW-Xz7IgNU5nsNP1f5IcUFjs');
-define('GOOGLE_AI_MODEL', 'gemini-pro'); // Options: gemini-pro, gemini-1.5-pro, gemini-1.5-flash
-define('GOOGLE_AI_API_URL', 'https://generativelanguage.googleapis.com/v1/models');
+// GROQ AI API Configuration (single provider)
+// Get your API key from https://groq.com/ and set it here.
+if (!defined('GROQ_API_KEY')) {
+    // Set your GROQ API key here. Leave empty ('') to disable AI features.
+    define('GROQ_API_KEY', '');
+}
+if (!defined('GROQ_MODEL')) {
+    define('GROQ_MODEL', 'groq-alpha'); // change to a model you have access to on Groq
+}
+if (!defined('GROQ_API_URL')) {
+    // Default Groq API endpoint (replace if Groq uses a different path)
+    define('GROQ_API_URL', 'https://api.groq.com/v1/chat/completions');
+}
 
 // Application Settings
 define('APP_NAME', 'CityCare');

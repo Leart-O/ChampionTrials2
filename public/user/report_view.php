@@ -195,10 +195,11 @@ $imageMime = 'image/jpeg'; // Default, could detect from BLOB
             const lng = <?= floatval($report['longitude']) ?>;
             
             const map = L.map('map').setView([lat, lng], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{s}/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19,
+                subdomains: ['a','b','c']
             }).addTo(map);
-            
             L.marker([lat, lng]).addTo(map);
         });
     </script>

@@ -1,7 +1,7 @@
 <?php
 /**
  * Test AI API Connection
- * Run this file to test if your OpenRouter API key is working
+ * Run this file to test if your GROQ API key is working
  * Usage: http://localhost/ChampionTrials2/public/test_ai.php
  */
 
@@ -24,19 +24,21 @@ header('Content-Type: text/html; charset=utf-8');
     </style>
 </head>
 <body>
-    <h1>OpenRouter API Test</h1>
+    <h1>GROQ API Test</h1>
     
     <?php
     echo "<div class='info'>";
-    echo "<strong>API Key:</strong> " . (defined('OPENROUTER_API_KEY') ? substr(OPENROUTER_API_KEY, 0, 20) . "..." : "NOT SET") . "<br>";
-    echo "<strong>API URL:</strong> " . (defined('OPENROUTER_API_URL') ? OPENROUTER_API_URL : "NOT SET") . "<br>";
-    echo "<strong>Model:</strong> " . (defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : "NOT SET") . "<br>";
+    $groqConfigured = defined('GROQ_API_KEY') && GROQ_API_KEY !== '';
+    echo "<strong>API Provider:</strong> GROQ<br>";
+    echo "<strong>API Key:</strong> " . (defined('GROQ_API_KEY') ? (GROQ_API_KEY !== '' ? substr(GROQ_API_KEY, 0, 20) . '...' : 'EMPTY') : 'NOT SET') . "<br>";
+    echo "<strong>API URL:</strong> " . (defined('GROQ_API_URL') ? GROQ_API_URL : "NOT SET") . "<br>";
+    echo "<strong>Model:</strong> " . (defined('GROQ_MODEL') ? GROQ_MODEL : "NOT SET") . "<br>";
     echo "</div>";
-    
-    if (empty(OPENROUTER_API_KEY) || OPENROUTER_API_KEY === 'your-api-key-here') {
+
+    if (!$groqConfigured) {
         echo "<div class='error'>";
-        echo "<strong>ERROR:</strong> OpenRouter API key is not configured in config.php<br>";
-        echo "Please set OPENROUTER_API_KEY in your config.php file.";
+        echo "<strong>ERROR:</strong> GROQ API key is not configured in config.php<br>";
+        echo "Please set GROQ_API_KEY in your config.php file.";
         echo "</div>";
         exit;
     }
@@ -65,10 +67,10 @@ header('Content-Type: text/html; charset=utf-8');
         
         echo "<div class='info'>";
         echo "<strong>Troubleshooting:</strong><br>";
-        echo "1. Check if your API key is valid at <a href='https://openrouter.ai/keys' target='_blank'>https://openrouter.ai/keys</a><br>";
-        echo "2. Verify you have credits/balance in your OpenRouter account<br>";
-        echo "3. Check if the model '" . OPENROUTER_MODEL . "' is available<br>";
-        echo "4. Review PHP error logs for more details";
+    echo "1. Check if your API key is valid at <a href='https://groq.com/' target='_blank'>https://groq.com/</a><br>";
+    echo "2. Verify you have sufficient credits/permissions in your GROQ account<br>";
+    echo "3. Check if the configured model is available in your GROQ account<br>";
+    echo "4. Review PHP error logs for more details";
         echo "</div>";
     } elseif ($response && isset($response['choices'][0]['message']['content'])) {
         echo "<div class='success'>";
