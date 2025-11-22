@@ -20,7 +20,7 @@ if (!defined('OPENROUTER_API_KEY')) {
 if (!defined('OPENROUTER_MODEL')) {
     // Default model - you can use any model available on OpenRouter
     // Examples: 'openai/gpt-4', 'anthropic/claude-3-opus', 'google/gemini-pro', 'meta-llama/llama-3.1-70b-instruct'
-    define('OPENROUTER_MODEL', 'openai/gpt-3.5-turbo');
+    define('OPENROUTER_MODEL', 'kwaipilot/kat-coder-pro-v1:free');
 }
 
 if (!defined('OPENROUTER_API_URL')) {
