@@ -14,14 +14,14 @@ define('DB_PASS', '');
 // Get your API key from https://groq.com/ and set it here.
 if (!defined('GROQ_API_KEY')) {
     // Set your GROQ API key here. Leave empty ('') to disable AI features.
-    define('GROQ_API_KEY', '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');
+    define('GROQ_API_KEY', '');
 }
 if (!defined('GROQ_MODEL')) {
     define('GROQ_MODEL', 'groq-alpha'); // change to a model you have access to on Groq
 }
 if (!defined('GROQ_API_URL')) {
     // Default Groq API endpoint (replace if Groq uses a different path)
-    define('GROQ_API_URL', 'https://api.groq.com/v1/outputs');
+    define('GROQ_API_URL', 'https://api.groq.com/v1/chat/completions');
 }
 
 // Application Settings
@@ -62,5 +62,4 @@ define('CLUSTER_TIME_HOURS', 48); // Reports within 48 hours
 // Error Reporting (set to 0 in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
 

@@ -35,39 +35,176 @@ function callOpenRouterAPI($messages, $model = null) {
 
     $payload = ['model' => $model, 'messages' => $gMessages];
 
-    $url = defined('GROQ_API_URL') ? rtrim(GROQ_API_URL, '/') : 'https://api.groq.com/v1/chat/completions';
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'Authorization: Bearer ' . $groqKey
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlError = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlError) {
-        error_log("GROQ API curl error: {$curlError}");
-        return ['error' => 'curl_error', 'message' => $curlError];
+    // Build a simple text fallback payload (some endpoints expect `input` or `prompt`)
+    $simpleText = '';
+    foreach ($gMessages as $m) {
+        $simpleText .= strtoupper($m['role']) . ": " . ($m['content'] ?? '') . "\n";
     }
 
-    if ($httpCode !== 200 && $httpCode !== 201) {
-        $decodedErr = json_decode($response, true);
-        $msg = $decodedErr['error']['message'] ?? $decodedErr['message'] ?? $response;
-        error_log("GROQ API HTTP error {$httpCode}: " . substr($msg, 0, 1000));
-        return ['error' => 'http_error', 'code' => $httpCode, 'message' => $msg];
+    // Initialize common variables
+    $lastError = null;
+    $response = null;
+    $httpCode = 0;
+    // Configured GROQ URL from config.php (may be empty)
+    $configuredUrl = defined('GROQ_API_URL') ? rtrim(GROQ_API_URL, '/') : '';
+
+    // If configured URL explicitly targets /outputs, try payload shapes compatible with that endpoint only
+    if ($configuredUrl !== '' && stripos($configuredUrl, '/outputs') !== false) {
+        $structuredInput = $gMessages; // array of ['role'=>..., 'content'=>...]
+        $fallbackPayloads = [
+            ['model' => $model, 'input' => $structuredInput],
+            ['model' => $model, 'input' => $simpleText],
+            ['model' => $model, 'prompt' => $simpleText],
+            ['model' => 'models/' . $model, 'input' => $structuredInput],
+        ];
+
+        foreach ($fallbackPayloads as $fp) {
+            $ch2 = curl_init($configuredUrl);
+            curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch2, CURLOPT_POST, true);
+            curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($fp));
+            curl_setopt($ch2, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $groqKey
+            ]);
+            curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+
+            $resp2 = curl_exec($ch2);
+            $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+            $curlErr2 = curl_error($ch2);
+            curl_close($ch2);
+
+            if ($curlErr2) {
+                $lastError = ['error' => 'curl_error', 'message' => $curlErr2, 'url' => $configuredUrl];
+                continue;
+            }
+
+            if ($code2 === 200 || $code2 === 201) {
+                $response = $resp2;
+                $httpCode = $code2;
+                break;
+            }
+
+            $decodedErr2 = json_decode($resp2, true);
+            $errMsg2 = $decodedErr2['error']['message'] ?? $decodedErr2['message'] ?? ($resp2 ?: '');
+            $lastError = ['error' => 'http_error', 'code' => $code2, 'message' => $errMsg2, 'url' => $configuredUrl];
+        }
+
+        if ($response === null) {
+            return is_array($lastError) ? $lastError : ['error' => 'no_response', 'message' => 'No successful response from configured GROQ API URL', 'url' => $configuredUrl];
+        }
+    } else {
+        // Fallback: try a set of common endpoints (legacy behavior)
+        $defaultCandidates = [
+            'https://api.groq.com/v1/chat/completions',
+            'https://api.groq.com/v1/completions',
+            'https://api.groq.com/v1/outputs',
+            'https://api.groq.com/v1/models/' . $model . '/outputs',
+            'https://api.groq.com/v1/engines/' . $model . '/completions',
+            'https://api.groq.com/v1/engines/' . $model . '/outputs',
+        ];
+        $candidates = [];
+        if ($configuredUrl !== '') { $candidates[] = $configuredUrl; }
+        foreach ($defaultCandidates as $c) { if (!in_array($c, $candidates)) $candidates[] = $c; }
+
+        // Try each candidate URL. For each, attempt message-style payload first, then a fallback input/prompt payload.
+        foreach ($candidates as $tryUrl) {
+            // try message-style
+            $ch = curl_init($tryUrl);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $groqKey
+            ]);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+            $resp = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlErr = curl_error($ch);
+            curl_close($ch);
+
+            if ($curlErr) {
+                $lastError = ['error' => 'curl_error', 'message' => $curlErr, 'url' => $tryUrl];
+                continue;
+            }
+
+            if ($code === 200 || $code === 201) {
+                $response = $resp;
+                $httpCode = $code;
+                break;
+            }
+
+            $decodedErr = json_decode($resp, true);
+            $errMsg = $decodedErr['error']['message'] ?? $decodedErr['message'] ?? ($resp ?: '');
+            if ($code === 404 || stripos($errMsg, 'Unknown request URL') !== false) {
+                $structuredInput = $gMessages;
+                $fallbackPayloads = [
+                    ['model' => $model, 'input' => $structuredInput],
+                    ['model' => $model, 'input' => $simpleText],
+                    ['model' => $model, 'prompt' => $simpleText],
+                    ['model' => $model, 'text' => $simpleText]
+                ];
+
+                $modelVariant = 'models/' . $model;
+                $additionalFallbacks = [
+                    ['model' => $modelVariant, 'input' => $structuredInput],
+                    ['model' => $modelVariant, 'input' => $simpleText],
+                    ['model' => $modelVariant, 'prompt' => $simpleText],
+                ];
+
+                $allFallbacks = array_merge($fallbackPayloads, $additionalFallbacks);
+
+                foreach ($allFallbacks as $fp) {
+                    $ch2 = curl_init($tryUrl);
+                    curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+                    curl_setopt($ch2, CURLOPT_POST, true);
+                    curl_setopt($ch2, CURLOPT_POSTFIELDS, json_encode($fp));
+                    curl_setopt($ch2, CURLOPT_HTTPHEADER, [
+                        'Content-Type: application/json',
+                        'Authorization: Bearer ' . $groqKey
+                    ]);
+                    curl_setopt($ch2, CURLOPT_TIMEOUT, 30);
+
+                    $resp2 = curl_exec($ch2);
+                    $code2 = curl_getinfo($ch2, CURLINFO_HTTP_CODE);
+                    $curlErr2 = curl_error($ch2);
+                    curl_close($ch2);
+
+                    if ($curlErr2) {
+                        $lastError = ['error' => 'curl_error', 'message' => $curlErr2, 'url' => $tryUrl];
+                        continue;
+                    }
+
+                    if ($code2 === 200 || $code2 === 201) {
+                        $response = $resp2;
+                        $httpCode = $code2;
+                        break 2;
+                    }
+
+                    $decodedErr2 = json_decode($resp2, true);
+                    $errMsg2 = $decodedErr2['error']['message'] ?? $decodedErr2['message'] ?? ($resp2 ?: '');
+                    $lastError = ['error' => 'http_error', 'code' => $code2, 'message' => $errMsg2, 'url' => $tryUrl];
+                }
+            }
+
+            $lastError = ['error' => 'http_error', 'code' => $code, 'message' => $errMsg, 'url' => $tryUrl];
+        }
+    }
+
+    if ($response === null) {
+        // return the last error we encountered
+        if (is_array($lastError)) {
+            return $lastError;
+        }
+        return ['error' => 'no_response', 'message' => 'No successful response from GROQ endpoints'];
     }
 
     $decoded = json_decode($response, true);
     if (!$decoded) {
         error_log("GROQ API JSON decode error. Response: " . substr($response, 0, 500));
-        return ['error' => 'json_error', 'message' => 'Invalid JSON response'];
+        return ['error' => 'json_error', 'message' => 'Invalid JSON response', 'raw' => $response];
     }
 
     // Try to extract text from common shapes
@@ -104,10 +241,70 @@ function callOpenRouterAPI($messages, $model = null) {
  * List available Google Generative models for the configured API key
  * Returns array of model names or an array with 'error' on failure
  */
-function listAvailableGoogleModels() {
-    // Model listing is not implemented for GROQ in this project.
-    // Return a helpful error message so callers can fall back or log diagnostics.
-    return ['error' => 'not_supported', 'message' => 'Listing available models is not supported for GROQ in this integration.'];
+/**
+ * List available GROQ models for the configured API key
+ * Returns array of model names or an array with 'error' on failure
+ */
+function listAvailableGroqModels() {
+    $groqKey = defined('GROQ_API_KEY') ? GROQ_API_KEY : '';
+    if (empty($groqKey)) {
+        return ['error' => 'no_api_key', 'message' => 'GROQ API key not configured'];
+    }
+
+    // Derive models endpoint from configured API URL if possible
+    $base = 'https://api.groq.com';
+    if (defined('GROQ_API_URL') && !empty(GROQ_API_URL)) {
+        $u = parse_url(GROQ_API_URL);
+        if ($u !== false && isset($u['scheme']) && isset($u['host'])) {
+            $base = $u['scheme'] . '://' . $u['host'];
+        }
+    }
+
+    $modelsUrl = rtrim($base, '/') . '/v1/models';
+
+    $ch = curl_init($modelsUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $groqKey,
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 20);
+
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+
+    if ($curlErr) {
+        return ['error' => 'curl_error', 'message' => $curlErr];
+    }
+
+    if ($code !== 200) {
+        $decoded = json_decode($resp, true);
+        $msg = $decoded['error']['message'] ?? $decoded['message'] ?? $resp;
+        return ['error' => 'http_error', 'code' => $code, 'message' => $msg];
+    }
+
+    $decoded = json_decode($resp, true);
+    if (!$decoded) {
+        return ['error' => 'json_error', 'message' => 'Unable to decode models response', 'raw' => $resp];
+    }
+
+    // Attempt to extract model names from common shapes
+    $models = [];
+    if (isset($decoded['data']) && is_array($decoded['data'])) {
+        foreach ($decoded['data'] as $m) {
+            if (is_array($m) && isset($m['id'])) $models[] = $m['id'];
+            elseif (is_string($m)) $models[] = $m;
+        }
+    } elseif (isset($decoded['models']) && is_array($decoded['models'])) {
+        foreach ($decoded['models'] as $m) {
+            if (is_array($m) && isset($m['id'])) $models[] = $m['id'];
+            elseif (is_string($m)) $models[] = $m;
+        }
+    }
+
+    return $models ?: ['error' => 'no_models_found', 'message' => 'No models returned'];
 }
 
 /**
