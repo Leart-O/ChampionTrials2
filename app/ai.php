@@ -1,30 +1,30 @@
 <?php
 /**
  * ai.php
- * DeepInfra AI backend
+ * OpenRouter AI backend
  * 
  * Requirements:
- * - DEEPINFRA_API_KEY
- * - DEEPINFRA_MODEL
- * - DEEPINFRA_API_URL = https://api.deepinfra.com/v1/openai/chat/completions
+ * - OPENROUTER_API_KEY
+ * - OPENROUTER_MODEL
+ * - OPENROUTER_API_URL = https://openrouter.ai/api/v1/chat/completions
  */
 
-if (!defined("DEEPINFRA_API_KEY")) die("Missing DEEPINFRA_API_KEY in config.php");
-if (!defined("DEEPINFRA_MODEL")) die("Missing DEEPINFRA_MODEL in config.php");
-if (!defined("DEEPINFRA_API_URL")) die("Missing DEEPINFRA_API_URL in config.php");
+if (!defined("OPENROUTER_API_KEY")) die("Missing OPENROUTER_API_KEY in config.php");
+if (!defined("OPENROUTER_MODEL")) die("Missing OPENROUTER_MODEL in config.php");
+if (!defined("OPENROUTER_API_URL")) die("Missing OPENROUTER_API_URL in config.php");
 
 /**
- * Core DeepInfra API call
+ * Core OpenRouter API call
  */
-function deepinfraRequest($messages, $model = null) {
-    $apiKey = DEEPINFRA_API_KEY;
-    $model = $model ?? DEEPINFRA_MODEL;
-    $url   = DEEPINFRA_API_URL;
+function openrouterRequest($messages, $model = null) {
+    $apiKey = OPENROUTER_API_KEY;
+    $model = $model ?? OPENROUTER_MODEL;
+    $url   = OPENROUTER_API_URL;
 
     if (!$apiKey) {
         return [
             "error" => "missing_api_key",
-            "message" => "DEEPINFRA_API_KEY is empty"
+            "message" => "OPENROUTER_API_KEY is empty"
         ];
     }
 
@@ -40,7 +40,9 @@ function deepinfraRequest($messages, $model = null) {
         CURLOPT_POSTFIELDS => json_encode($payload),
         CURLOPT_HTTPHEADER => [
             "Content-Type: application/json",
-            "Authorization: Bearer $apiKey"
+            "Authorization: Bearer $apiKey",
+            "HTTP-Referer: " . (defined('APP_URL') ? APP_URL : 'http://localhost'),
+            "X-Title: CityCare"
         ],
         CURLOPT_TIMEOUT => 30
     ]);
@@ -61,7 +63,7 @@ function deepinfraRequest($messages, $model = null) {
     // Decode response
     $json = json_decode($raw, true);
 
-    // Handle DeepInfra errors
+    // Handle OpenRouter errors
     if ($code !== 200) {
         return [
             "error" => "http_error",
@@ -85,7 +87,7 @@ function deepinfraRequest($messages, $model = null) {
  * HIGH LEVEL HELPER: Simple call used by test_ai.php
  */
 function callOpenRouterAPI($messages) {
-    return deepinfraRequest($messages);
+    return openrouterRequest($messages);
 }
 
 /**
@@ -115,7 +117,7 @@ function callAIAssistant($description) {
         ]
     ];
 
-    $result = deepinfraRequest($messages);
+    $result = openrouterRequest($messages);
 
     if (isset($result["error"])) {
         return false;
@@ -142,7 +144,7 @@ function callAIPriority($reportId, $title, $description, $category = null) {
     require_once __DIR__ . '/db.php';
     
     // Check if API key is configured
-    if (!defined('DEEPINFRA_API_KEY') || DEEPINFRA_API_KEY === '') {
+    if (!defined('OPENROUTER_API_KEY') || OPENROUTER_API_KEY === '') {
         return false;
     }
     
@@ -173,7 +175,7 @@ function callAIPriority($reportId, $title, $description, $category = null) {
         ]
     ];
     
-    $result = deepinfraRequest($messages);
+    $result = openrouterRequest($messages);
     
     if (isset($result["error"])) {
         error_log("AI Priority Error: " . ($result["message"] ?? "Unknown error"));
