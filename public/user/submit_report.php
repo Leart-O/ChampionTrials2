@@ -21,11 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (!empty($description)) {
         $aiSuggestions = callAIAssistant($description);
         if (!$aiSuggestions) {
-            // Check if GROQ API key is configured
-            if (!defined('GROQ_API_KEY') || GROQ_API_KEY === '') {
-                $error = 'AI assistant requires a GROQ API key. Please configure GROQ_API_KEY in config.php';
+            // Check if DeepInfra API key is configured
+            if (!defined('DEEPINFRA_API_KEY') || DEEPINFRA_API_KEY === '') {
+                $error = 'AI assistant requires a DeepInfra API key. Please configure DEEPINFRA_API_KEY in config.php';
             } else {
-                $error = 'AI assistant is currently unavailable. Please check your GROQ API key and try again, or fill in the form manually.';
+                $error = 'AI assistant is currently unavailable. Please check your DeepInfra API key and try again, or fill in the form manually.';
             }
         }
     }

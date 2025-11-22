@@ -179,10 +179,10 @@ try {
     echo "\nRunning AI priority analysis...\n";
     require_once __DIR__ . '/../app/ai.php';
     
-    // Check if GROQ AI API key is configured
-    $groqConfigured = defined('GROQ_API_KEY') && GROQ_API_KEY !== '';
+    // Check if DeepInfra AI API key is configured
+    $deepinfraConfigured = defined('DEEPINFRA_API_KEY') && DEEPINFRA_API_KEY !== '';
 
-    if ($groqConfigured) {
+    if ($deepinfraConfigured) {
         echo "  Running AI analysis for reports...\n";
         
         $reports = [
@@ -204,8 +204,8 @@ try {
             }
         }
     } else {
-        echo "  ⚠ GROQ API key not configured. Skipping AI analysis.\n";
-        echo "    To enable AI features, set GROQ_API_KEY in config.php\n";
+        echo "  ⚠ DeepInfra API key not configured. Skipping AI analysis.\n";
+        echo "    To enable AI features, set DEEPINFRA_API_KEY in config.php\n";
     }
     
     echo "\n✓ Database seeding completed successfully!\n\n";

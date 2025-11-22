@@ -1,7 +1,7 @@
 <?php
 /**
  * Test AI API Connection
- * Run this file to test if your GROQ API key is working
+ * Run this file to test if your DeepInfra API key is working
  * Usage: http://localhost/ChampionTrials2/public/test_ai.php
  */
 
@@ -24,22 +24,22 @@ header('Content-Type: text/html; charset=utf-8');
     </style>
 </head>
 <body>
-    <h1>GROQ API Test</h1>
+    <h1>DeepInfra API Test</h1>
     
     <?php
     echo "<div class='info'>";
-    $groqConfigured = defined('GROQ_API_KEY') && GROQ_API_KEY !== '';
-    echo "<strong>API Provider:</strong> GROQ<br>";
-    echo "<strong>API Key:</strong> " . (defined('GROQ_API_KEY') ? (GROQ_API_KEY !== '' ? substr(GROQ_API_KEY, 0, 20) . '...' : 'EMPTY') : 'NOT SET') . "<br>";
-    echo "<strong>API URL:</strong> " . (defined('GROQ_API_URL') ? GROQ_API_URL : "NOT SET") . "<br>";
-    echo "<strong>Model:</strong> " . (defined('GROQ_MODEL') ? GROQ_MODEL : "NOT SET") . "<br>";
+    $deepinfraConfigured = defined('DEEPINFRA_API_KEY') && DEEPINFRA_API_KEY !== '';
+    echo "<strong>API Provider:</strong> DeepInfra<br>";
+    echo "<strong>API Key:</strong> " . (defined('DEEPINFRA_API_KEY') ? (DEEPINFRA_API_KEY !== '' ? substr(DEEPINFRA_API_KEY, 0, 20) . '...' : 'EMPTY') : 'NOT SET') . "<br>";
+    echo "<strong>API URL:</strong> " . (defined('DEEPINFRA_API_URL') ? DEEPINFRA_API_URL : "NOT SET") . "<br>";
+    echo "<strong>Model:</strong> " . (defined('DEEPINFRA_MODEL') ? DEEPINFRA_MODEL : "NOT SET") . "<br>";
     echo "</div>";
 
-    if (!$groqConfigured) {
+    if (!$deepinfraConfigured) {
         echo "<div class='error'>";
-        echo "<strong>ERROR:</strong> GROQ API key is not configured in config.php<br>";
-        echo "Please set GROQ_API_KEY in your config.php file.<br>";
-        echo "Current value: " . (defined('GROQ_API_KEY') ? (GROQ_API_KEY !== '' ? 'SET' : 'EMPTY') : 'NOT DEFINED');
+        echo "<strong>ERROR:</strong> DeepInfra API key is not configured in config.php<br>";
+        echo "Please set DEEPINFRA_API_KEY in your config.php file.<br>";
+        echo "Current value: " . (defined('DEEPINFRA_API_KEY') ? (DEEPINFRA_API_KEY !== '' ? 'SET' : 'EMPTY') : 'NOT DEFINED');
         echo "</div>";
         exit;
     }
@@ -68,9 +68,9 @@ header('Content-Type: text/html; charset=utf-8');
         
         echo "<div class='info'>";
         echo "<strong>Troubleshooting:</strong><br>";
-    echo "1. Check if your API key is valid at <a href='https://groq.com/' target='_blank'>https://groq.com/</a><br>";
+    echo "1. Check if your API key is valid at <a href='https://deepinfra.com/' target='_blank'>https://deepinfra.com/</a><br>";
     echo "2. Verify the API key has sufficient credits/permissions<br>";
-    echo "3. Check if the configured model is available in your GROQ account<br>";
+    echo "3. Check if the configured model is available in your DeepInfra account<br>";
     echo "4. Review PHP error logs for more details<br>";
         echo "</div>";
     } elseif ($response && isset($response['choices'][0]['message']['content'])) {
