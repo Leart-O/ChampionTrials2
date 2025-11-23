@@ -41,6 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     redirect('/municipality/dashboard.php');
                 } elseif ($user['role_name'] === 'Admin') {
                     redirect('/admin/panel.php');
+                } elseif ($user['role_name'] === 'Authority') {
+                    redirect('/authority/dashboard.php');
                 } else {
                     redirect('/user/dashboard.php');
                 }

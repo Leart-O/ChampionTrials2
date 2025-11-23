@@ -10,19 +10,22 @@ define('DB_NAME', 'citycare');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
-// DeepInfra AI API Configuration
-if (!defined('DEEPINFRA_API_KEY')) {
-    // Set your DeepInfra API key here. Leave empty ('') to disable AI features.
-    define('DEEPINFRA_API_KEY', '0EXwLcZB7lWzTESPtrB4cGP4lEfnD5Rw');
+// OpenRouter AI API Configuration
+// Get your API key from https://openrouter.ai/ and set it here.
+if (!defined('OPENROUTER_API_KEY')) {
+    // Set your OpenRouter API key here. Leave empty ('') to disable AI features.
+    define('OPENROUTER_API_KEY', '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');
 }
 
-if (!defined('DEEPINFRA_MODEL')) {
-    // Use DeepSeek V3.2 Experimental model
-    define('DEEPINFRA_MODEL', 'mistralai/Mixtral-7B-Instruct-v0.1');
+if (!defined('OPENROUTER_MODEL')) {
+    // Default model - you can use any model available on OpenRouter
+    // Examples: 'openai/gpt-4', 'anthropic/claude-3-opus', 'google/gemini-pro', 'meta-llama/llama-3.1-70b-instruct'
+    define('OPENROUTER_MODEL', 'kwaipilot/kat-coder-pro-v1:free');
 }
 
-if (!defined('DEEPINFRA_API_URL')) {
-    define('DEEPINFRA_API_URL', 'https://api.deepinfra.com/v1/openai/chat/completions');
+if (!defined('OPENROUTER_API_URL')) {
+    // OpenRouter API endpoint
+    define('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1/chat/completions');
 }
 
 // Application Settings
@@ -59,36 +62,3 @@ define('CLUSTER_TIME_HOURS', 48);
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-/**
- * Example function to call DeepInfra with the new DeepSeek model
- */
-function deepinfra_ai_request($prompt) {
-    $apiKey = DEEPINFRA_API_KEY;
-    $model = DEEPINFRA_MODEL;
-    $url = DEEPINFRA_API_URL;
-
-    $data = [
-        "model" => $model,
-        "messages" => [
-            ["role" => "user", "content" => $prompt]
-        ]
-    ];
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Authorization: Bearer $apiKey",
-        "Content-Type: application/json"
-    ]);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    $response = curl_exec($ch);
-    curl_close($ch);
-
-    return json_decode($response, true);
-}
-
-// Example usage:
-// $result = deepinfra_ai_request("Hello, DeepSeek!");
-// var_dump($result);

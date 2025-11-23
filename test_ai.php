@@ -1,7 +1,7 @@
 <?php
 /**
  * Test AI API Connection
- * Run this file to test if your DeepInfra API key is working
+ * Run this file to test if your OpenRouter API key is working
  * Usage: http://localhost/ChampionTrials2/public/test_ai.php
  */
 
@@ -24,21 +24,21 @@ header('Content-Type: text/html; charset=utf-8');
     </style>
 </head>
 <body>
-    <h1>DeepInfra API Test</h1>
+    <h1>OpenRouter API Test</h1>
     
     <?php
     echo "<div class='info'>";
-    $deepinfraConfigured = defined('DEEPINFRA_API_KEY') && DEEPINFRA_API_KEY !== '';
-    echo "<strong>API Provider:</strong> DeepInfra<br>";
-    echo "<strong>API Key:</strong> " . (defined('DEEPINFRA_API_KEY') ? (DEEPINFRA_API_KEY !== '' ? substr(DEEPINFRA_API_KEY, 0, 20) . '...' : 'EMPTY') : 'NOT SET') . "<br>";
-    echo "<strong>API URL:</strong> " . (defined('DEEPINFRA_API_URL') ? DEEPINFRA_API_URL : "NOT SET") . "<br>";
-    echo "<strong>Model:</strong> " . (defined('DEEPINFRA_MODEL') ? DEEPINFRA_MODEL : "NOT SET") . "<br>";
+    $openrouterConfigured = defined('OPENROUTER_API_KEY') && OPENROUTER_API_KEY !== '';
+    echo "<strong>API Provider:</strong> OpenRouter<br>";
+    echo "<strong>API Key:</strong> " . (defined('OPENROUTER_API_KEY') ? (OPENROUTER_API_KEY !== '' ? substr(OPENROUTER_API_KEY, 0, 20) . '...' : 'EMPTY') : 'NOT SET') . "<br>";
+    echo "<strong>API URL:</strong> " . (defined('OPENROUTER_API_URL') ? OPENROUTER_API_URL : "NOT SET") . "<br>";
+    echo "<strong>Model:</strong> " . (defined('OPENROUTER_MODEL') ? OPENROUTER_MODEL : "NOT SET") . "<br>";
     echo "</div>";
 
-    if (!$deepinfraConfigured) {
+    if (!$openrouterConfigured) {
         echo "<div class='error'>";
-        echo "<strong>ERROR:</strong> DeepInfra API key is not configured in config.php<br>";
-        echo "Please set DEEPINFRA_API_KEY in your config.php file.";
+        echo "<strong>ERROR:</strong> OpenRouter API key is not configured in config.php<br>";
+        echo "Please set OPENROUTER_API_KEY in your config.php file.";
         echo "</div>";
         exit;
     }
@@ -67,9 +67,9 @@ header('Content-Type: text/html; charset=utf-8');
         
         echo "<div class='info'>";
         echo "<strong>Troubleshooting:</strong><br>";
-    echo "1. Check if your API key is valid at <a href='https://deepinfra.com/' target='_blank'>https://deepinfra.com/</a><br>";
-    echo "2. Verify you have sufficient credits/permissions in your DeepInfra account<br>";
-    echo "3. Check if the configured model is available in your DeepInfra account<br>";
+    echo "1. Check if your API key is valid at <a href='https://openrouter.ai/' target='_blank'>https://openrouter.ai/</a><br>";
+    echo "2. Verify you have sufficient credits/permissions in your OpenRouter account<br>";
+    echo "3. Check if the configured model is available on OpenRouter<br>";
     echo "4. Review PHP error logs for more details";
         echo "</div>";
     } elseif ($response && isset($response['choices'][0]['message']['content'])) {

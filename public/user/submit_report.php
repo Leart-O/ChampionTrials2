@@ -21,13 +21,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (!empty($description)) {
         $aiSuggestions = callAIAssistant($description);
         if (!$aiSuggestions) {
-            // Check if DeepInfra API key is configured
-            if (!defined('DEEPINFRA_API_KEY') || DEEPINFRA_API_KEY === '') {
-                $error = 'AI assistant requires a DeepInfra API key. Please configure DEEPINFRA_API_KEY in config.php';
+            // Check if OpenRouter API key is configured
+            if (!defined('OPENROUTER_API_KEY') || OPENROUTER_API_KEY === '') {
+                $error = 'AI assistant requires an OpenRouter API key. Please configure OPENROUTER_API_KEY in config.php';
             } else {
-                $error = 'AI assistant is currently unavailable. Please check your DeepInfra API key and try again, or fill in the form manually.';
+                $error = 'AI assistant is currently unavailable. Please check your OpenRouter API key and try again, or fill in the form manually.';
             }
         }
+    }
+    // If this was an AJAX request, return JSON immediately
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    if ($isAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        if ($aiSuggestions && is_array($aiSuggestions)) {
+            echo json_encode($aiSuggestions);
+        } else {
+            echo json_encode(['error' => 'ai_unavailable', 'message' => $error ?: 'AI assistant returned no suggestions']);
+        }
+        exit;
     }
 }
 
@@ -78,6 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 $csrfToken = generateCSRFToken();
+
+// Prefill from query parameters (used when redirected after AI assist)
+$prefill_title = trim($_GET['ai_title'] ?? ($aiSuggestions['title_suggestion'] ?? ''));
+$prefill_category = trim($_GET['ai_category'] ?? ($aiSuggestions['category_suggestion'] ?? ''));
+$prefill_summary = trim($_GET['ai_summary'] ?? ($aiSuggestions['summary'] ?? ''));
+$prefill_lat = trim($_GET['ai_lat'] ?? ($aiSuggestions['suggested_lat'] ?? ''));
+$prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -94,62 +112,78 @@ $csrfToken = generateCSRFToken();
 
     <main class="container my-4">
         <h2 class="mb-4">Submit New Report</h2>
+
+        <!-- Choice: Manual or AI assisted -->
+        <div class="row mb-4" id="submissionChoice">
+            <div class="col-md-6 mb-2">
+                <div class="card h-100 choice-card" id="manualChoice" style="cursor:pointer;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-start">
+                        <h5 class="card-title">Submit Manually</h5>
+                        <p class="card-text">Fill out all fields manually (title, category, description, location, image).</p>
+                        <button class="btn btn-outline-primary mt-2" id="chooseManualBtn">Choose Manual</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-2">
+                <div class="card h-100 choice-card border-primary" id="aiChoice" style="cursor:pointer;">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-start">
+                        <h5 class="card-title">Use AI Assistance</h5>
+                        <p class="card-text">Enter only description, location and image. AI will suggest title, category and rewrite the description for you to review.</p>
+                        <button class="btn btn-primary mt-2" id="chooseAiBtn">Use AI</button>
+                    </div>
+                </div>
+            </div>
+        </div>
         
         <?php if ($error): ?>
             <div class="alert alert-danger"><?= h($error) ?></div>
         <?php endif; ?>
         
+        <div id="reportFormContainer" class="d-none">
         <form method="POST" action="" enctype="multipart/form-data" id="reportForm">
             <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="action" value="submit">
-            <input type="hidden" name="latitude" id="latitude" value="">
-            <input type="hidden" name="longitude" id="longitude" value="">
+            <input type="hidden" name="latitude" id="latitude" value="<?= h($prefill_lat) ?>">
+            <input type="hidden" name="longitude" id="longitude" value="<?= h($prefill_lng) ?>">
             
             <div class="row">
                 <div class="col-lg-8">
                     <div class="card mb-3">
                         <div class="card-body">
-                            <div class="mb-3">
+                            <div class="mb-3 manual-field" id="titleField">
                                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="title" name="title" required 
-                                       value="<?= h($aiSuggestions['title_suggestion'] ?? '') ?>">
+                                    <input type="text" class="form-control" id="title" name="title" 
+                                        value="<?= h($prefill_title ?: ($_POST['title'] ?? '')) ?>">
                             </div>
                             
-                            <div class="mb-3">
+                            <div class="mb-3 manual-field" id="categoryField">
                                 <label for="category" class="form-label">Category</label>
                                 <select class="form-select" id="category" name="category">
                                     <option value="">Select category</option>
-                                    <option value="pothole" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'pothole' ? 'selected' : '' ?>>Pothole</option>
-                                    <option value="lighting" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'lighting' ? 'selected' : '' ?>>Lighting</option>
-                                    <option value="water-leak" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'water-leak' ? 'selected' : '' ?>>Water Leak</option>
-                                    <option value="garbage/dumping" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'garbage/dumping' ? 'selected' : '' ?>>Garbage/Dumping</option>
-                                    <option value="traffic" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'traffic' ? 'selected' : '' ?>>Traffic</option>
-                                    <option value="other" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'other' ? 'selected' : '' ?>>Other</option>
+                                    <option value="pothole" <?= ($prefill_category === 'pothole' || ($_POST['category'] ?? '') === 'pothole') ? 'selected' : '' ?>>Pothole</option>
+                                    <option value="lighting" <?= ($prefill_category === 'lighting' || ($_POST['category'] ?? '') === 'lighting') ? 'selected' : '' ?>>Lighting</option>
+                                    <option value="water-leak" <?= ($prefill_category === 'water-leak' || ($_POST['category'] ?? '') === 'water-leak') ? 'selected' : '' ?>>Water Leak</option>
+                                    <option value="garbage/dumping" <?= ($prefill_category === 'garbage/dumping' || ($_POST['category'] ?? '') === 'garbage/dumping') ? 'selected' : '' ?>>Garbage/Dumping</option>
+                                    <option value="traffic" <?= ($prefill_category === 'traffic' || ($_POST['category'] ?? '') === 'traffic') ? 'selected' : '' ?>>Traffic</option>
+                                    <option value="other" <?= ($prefill_category === 'other' || ($_POST['category'] ?? '') === 'other') ? 'selected' : '' ?>>Other</option>
                                 </select>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="description" name="description" rows="5" required><?= h($_POST['description'] ?? '') ?></textarea>
+                                <textarea class="form-control" id="description" name="description" rows="5" required><?= h($_POST['description'] ?? $prefill_summary) ?></textarea>
                                 <small class="text-muted">Describe the issue in detail. Click "Get AI Assistance" for help.</small>
                             </div>
                             
-                            <div class="mb-3">
-                                <button type="button" class="btn btn-outline-primary btn-sm" id="aiAssistBtn">
-                                    <svg width="16" height="16" fill="currentColor" class="me-1">
-                                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                                    </svg>
-                                    Get AI Assistance
-                                </button>
-                            </div>
+                            <!-- Inline AI button removed - use the selection above to choose AI workflow -->
                             
-                            <?php if ($aiSuggestions): ?>
+                            <?php if ($aiSuggestions || $prefill_title || $prefill_category || $prefill_summary): ?>
                                 <div class="alert alert-info">
                                     <strong>AI Suggestions:</strong>
                                     <ul class="mb-0 mt-2">
-                                        <li><strong>Title:</strong> <?= h($aiSuggestions['title_suggestion'] ?? 'N/A') ?></li>
-                                        <li><strong>Category:</strong> <?= h($aiSuggestions['category_suggestion'] ?? 'N/A') ?></li>
-                                        <li><strong>Summary:</strong> <?= h($aiSuggestions['summary'] ?? 'N/A') ?></li>
+                                        <li><strong>Title:</strong> <?= h($prefill_title ?: ($aiSuggestions['title_suggestion'] ?? 'N/A')) ?></li>
+                                        <li><strong>Category:</strong> <?= h($prefill_category ?: ($aiSuggestions['category_suggestion'] ?? 'N/A')) ?></li>
+                                        <li><strong>Summary:</strong> <?= h($prefill_summary ?: ($aiSuggestions['summary'] ?? 'N/A')) ?></li>
                                     </ul>
                                 </div>
                             <?php endif; ?>
@@ -183,7 +217,46 @@ $csrfToken = generateCSRFToken();
                 </div>
             </div>
         </form>
+        </div>
     </main>
+
+    <!-- AI Review Modal -->
+    <div class="modal fade" id="aiReviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Review AI Suggestions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" id="aiTitleInput" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select id="aiCategoryInput" class="form-select">
+                            <option value="">Select category</option>
+                            <option value="pothole">Pothole</option>
+                            <option value="lighting">Lighting</option>
+                            <option value="water-leak">Water Leak</option>
+                            <option value="garbage/dumping">Garbage/Dumping</option>
+                            <option value="traffic">Traffic</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description (edited)</label>
+                        <textarea id="aiDescriptionInput" class="form-control" rows="6"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="aiConfirmBtn" class="btn btn-primary">Confirm & Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -226,6 +299,19 @@ $csrfToken = generateCSRFToken();
                 }
                 marker = L.marker([lat, lng]).addTo(map);
             });
+
+            // If AI provided lat/lng (via prefill), set marker
+            const prefillLat = <?= $prefill_lat !== '' ? json_encode((float)$prefill_lat) : 'null' ?>;
+            const prefillLng = <?= $prefill_lng !== '' ? json_encode((float)$prefill_lng) : 'null' ?>;
+            if (prefillLat !== null && prefillLng !== null) {
+                document.getElementById('latitude').value = prefillLat;
+                document.getElementById('longitude').value = prefillLng;
+                document.getElementById('latDisplay').textContent = parseFloat(prefillLat).toFixed(7);
+                document.getElementById('lngDisplay').textContent = parseFloat(prefillLng).toFixed(7);
+                if (marker) { map.removeLayer(marker); }
+                marker = L.marker([prefillLat, prefillLng]).addTo(map);
+                map.setView([prefillLat, prefillLng], 15);
+            }
             
             // Geolocate button
             document.getElementById('geolocateBtn').addEventListener('click', function() {
@@ -258,24 +344,120 @@ $csrfToken = generateCSRFToken();
                 }
             });
             
-                // AI Assist button
-                document.getElementById('aiAssistBtn').addEventListener('click', function() {
-                    const description = document.getElementById('description').value;
-                    if (!description.trim()) {
-                        alert('Please enter a description first.');
+            // Choice buttons and AI flow
+            const csrfToken = <?= json_encode($csrfToken) ?>;
+            let submissionMode = null; // 'manual' or 'ai'
+
+            const submissionChoiceEl = document.getElementById('submissionChoice');
+            const reportFormContainer = document.getElementById('reportFormContainer');
+            const chooseManualBtn = document.getElementById('chooseManualBtn');
+            const chooseAiBtn = document.getElementById('chooseAiBtn');
+            const titleField = document.getElementById('titleField');
+            const categoryField = document.getElementById('categoryField');
+            const titleInput = document.getElementById('title');
+            const categorySelect = document.getElementById('category');
+            const descriptionInput = document.getElementById('description');
+
+            function setMode(mode) {
+                submissionMode = mode;
+                // show form, hide choice
+                submissionChoiceEl.classList.add('d-none');
+                reportFormContainer.classList.remove('d-none');
+
+                if (mode === 'manual') {
+                    // show manual fields
+                    titleField.classList.remove('d-none');
+                    categoryField.classList.remove('d-none');
+                    titleInput.required = true;
+                } else if (mode === 'ai') {
+                    // hide manual title/category (AI will fill)
+                    titleField.classList.add('d-none');
+                    categoryField.classList.add('d-none');
+                    titleInput.required = false;
+                }
+            }
+
+            chooseManualBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                setMode('manual');
+            });
+
+            chooseAiBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                setMode('ai');
+            });
+
+            // Intercept form submit when AI mode to request suggestions and show review modal
+            document.getElementById('reportForm').addEventListener('submit', async function(e) {
+                if (submissionMode !== 'ai') {
+                    return; // allow normal submit for manual
+                }
+                e.preventDefault();
+
+                const desc = descriptionInput.value.trim();
+                const lat = document.getElementById('latitude').value;
+                const lng = document.getElementById('longitude').value;
+
+                if (!desc) {
+                    alert('Please enter a description before using AI assistance.');
+                    return;
+                }
+                if (!lat || !lng || parseFloat(lat) === 0 && parseFloat(lng) === 0) {
+                    alert('Please select a location on the map before using AI assistance.');
+                    return;
+                }
+
+                // Prepare AI request
+                const fd = new FormData();
+                fd.append('csrf_token', csrfToken);
+                fd.append('action', 'ai_assist');
+                fd.append('description', desc);
+
+                try {
+                    const resp = await fetch(window.location.pathname + window.location.search, {
+                        method: 'POST',
+                        body: fd,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    const data = await resp.json();
+                    if (data.error) {
+                        alert('AI assistant error: ' + (data.message || data.error));
                         return;
                     }
-                    
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.innerHTML = `
-                        <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                        <input type="hidden" name="action" value="ai_assist">
-                        <input type="hidden" name="description" value="${description}">
-                    `;
-                    document.body.appendChild(form);
-                    form.submit();
-                });
+
+                    // Populate review modal fields
+                    document.getElementById('aiTitleInput').value = data.title_suggestion || data.title || '';
+                    document.getElementById('aiCategoryInput').value = data.category_suggestion || data.category || '';
+                    document.getElementById('aiDescriptionInput').value = data.summary || data.rewrite || data.summary_suggestion || desc;
+
+                    // Show review modal
+                    const aiModalEl = document.getElementById('aiReviewModal');
+                    const aiModal = new bootstrap.Modal(aiModalEl);
+                    aiModal.show();
+
+                    // Confirm handler
+                    document.getElementById('aiConfirmBtn').onclick = function() {
+                        // Copy AI values back to the (hidden) form fields then submit
+                        titleInput.value = document.getElementById('aiTitleInput').value;
+                        categorySelect.value = document.getElementById('aiCategoryInput').value;
+                        descriptionInput.value = document.getElementById('aiDescriptionInput').value;
+
+                        // Reveal manual fields briefly so values get submitted (they are in the form regardless)
+                        titleField.classList.remove('d-none');
+                        categoryField.classList.remove('d-none');
+
+                        aiModal.hide();
+                        // Submit the form normally now that fields are populated
+                        document.getElementById('reportForm').submit();
+                    };
+
+                } catch (err) {
+                    console.error('AI request failed', err);
+                    alert('Failed to contact AI assistant. Please try again or submit manually.');
+                }
+            });
             } catch (error) {
                 console.error('Error initializing map:', error);
             }

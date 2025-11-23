@@ -81,6 +81,7 @@ function getUserReports($userId) {
 
 /**
  * Get all active reports (for municipality dashboard)
+ * Excludes Fixed and Rejected reports
  */
 function getAllActiveReports($limit = 1000, $days = 30) {
     $pdo = getDB();
@@ -91,7 +92,7 @@ function getAllActiveReports($limit = 1000, $days = 30) {
         JOIN report_status s ON r.status_id = s.status_id
         JOIN users u ON r.user_id = u.user_id
         WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
-        AND s.status_name != 'Fixed'
+        AND s.status_name NOT IN ('Fixed', 'Rejected')
         ORDER BY r.created_at DESC
         LIMIT :limit
     ");
@@ -272,6 +273,50 @@ function logAuditTrail($reportId, $userId, $action, $note = '') {
         'actor_user_id' => $userId,
         'note' => $note
     ]);
+}
+
+/**
+ * Get reports assigned to an authority
+ */
+function getAuthorityReports($authorityId) {
+    $pdo = getDB();
+    
+    $stmt = $pdo->prepare("
+        SELECT r.*, s.status_name, u.username, u.email
+        FROM reports r
+        JOIN report_status s ON r.status_id = s.status_id
+        JOIN users u ON r.user_id = u.user_id
+        WHERE r.assigned_to = :authority_id
+        AND s.status_name NOT IN ('Fixed', 'Rejected')
+        ORDER BY r.created_at DESC
+    ");
+    
+    $stmt->execute(['authority_id' => $authorityId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get authority ID for a user
+ */
+function getAuthorityIdForUser($userId) {
+    $pdo = getDB();
+    
+    // Check if user_id column exists
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM authorities LIKE 'user_id'")->fetch();
+        if ($columns === false) {
+            // Column doesn't exist, return null
+            return null;
+        }
+        
+        $stmt = $pdo->prepare("SELECT id FROM authorities WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $userId]);
+        $result = $stmt->fetch();
+        return $result ? $result['id'] : null;
+    } catch (PDOException $e) {
+        error_log("Error checking authority for user: " . $e->getMessage());
+        return null;
+    }
 }
 
 /**
