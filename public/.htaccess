@@ -1,14 +1,21 @@
-# Apache Configuration for CityCare
-# Enable mod_rewrite for clean URLs (optional)
-
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
+    # This .htaccess lives inside the public/ folder
+    # For subdirectory installations like /ChampionTrials2/public, use the full path
+    RewriteBase /ChampionTrials2/public/
+
+    # --- CRITICAL: Check if the requested resource exists as a real file on disk ---
+    # If the request IS for a real file that exists, do NOT rewrite it
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
     
-    # Redirect to index.php if file doesn't exist
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [QSA,L]
+    # If the request IS for a real directory that exists, do NOT rewrite it
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # --- For everything else (non-existent files/folders), route to index.php ---
+    # This allows index.php to handle the request as the front controller
+    RewriteRule ^ index.php [L,QSA]
 </IfModule>
 
 # Security Headers
@@ -23,4 +30,3 @@
     php_value upload_max_filesize 5M
     php_value post_max_size 5M
 </IfModule>
-

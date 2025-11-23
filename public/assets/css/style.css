@@ -1301,5 +1301,69 @@ a:focus, button:focus, .nav-link:focus, .dropdown-item:focus {
     box-shadow: 0 6px 20px rgba(59,130,246,0.06);
 }
 
+/* ===== FIX: prevent scrolling past footer — assert at file end ===== */
+html, body {
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important; /* avoid tiny horizontal scroll from shadows */
+}
+
+/* Ensure the layout is columnar and main fills remaining space */
+body {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* main (or .flex-grow-1) should take remaining space */
+main,
+.flex-grow-1 {
+  flex: 1 0 auto !important;
+}
+
+/* Footer stays at bottom and won't create extra vertical space */
+footer {
+  flex-shrink: 0 !important;
+  margin: 0 !important;
+  padding-bottom: 0 !important;
+  overflow: hidden !important; /* prevents pseudo-elements from extending page height */
+  box-sizing: border-box !important;
+}
+
+/* Remove bottom margin/padding from the last page section/container that could push footer */
+section:last-of-type,
+.container:last-of-type,
+main > :last-child {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Clamp footer pseudo-elements to avoid overflow */
+footer::after,
+footer::before {
+  max-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Defensive rule: if some decorative absolute element sits after footer, hide overflow */
+body > *:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Accessibility: preserve focus outlines and not break layout */
+a:focus, button:focus, .nav-link:focus, .dropdown-item:focus {
+  outline-offset: 3px !important;
+}
+
+/* End FIX */
+
+
+
+
 
 

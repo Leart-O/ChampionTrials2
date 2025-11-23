@@ -112,17 +112,6 @@ $csrfToken = generateCSRFToken();
                         <div class="text-center">
                             <p class="mb-0">Don't have an account? <a href="<?= url('/register.php') ?>">Register here</a></p>
                         </div>
-                        
-                        <hr class="my-4">
-                        
-                        <div class="alert alert-info">
-                            <strong>Demo Accounts:</strong><br>
-                            <small>
-                                Admin: <code>admin_demo</code> / <code>DemoPass123!</code><br>
-                                Municipality: <code>muni_demo</code> / <code>DemoPass123!</code><br>
-                                User: <code>user1</code> / <code>DemoPass123!</code>
-                            </small>
-                        </div>
                     </div>
                 </div>
             </div>

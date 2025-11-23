@@ -1,4 +1,35 @@
 <?php
+// --- Static asset shortcut: serve files from public/ directly (place at top of index.php) ---
+$requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+$path = parse_url($requestUri, PHP_URL_PATH) ?: '/';
+
+// Remove /ChampionTrials2/public prefix if it exists (for subdirectory installs)
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/ChampionTrials2/public/index.php';
+$baseUrl = dirname($scriptName); // e.g., /ChampionTrials2/public
+
+if (strpos($path, $baseUrl) === 0) {
+    $path = substr($path, strlen($baseUrl));
+    if (!$path || $path[0] !== '/') {
+        $path = '/' . $path;
+    }
+}
+
+// Try to serve static file from public directory
+$baseDir = __DIR__;
+$localFile = realpath($baseDir . $path);
+
+if ($localFile !== false && strpos($localFile, $baseDir) === 0 &&
+    preg_match('/\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|map|woff2?|ttf)$/i', $localFile) &&
+    is_file($localFile)
+) {
+    $mime = @mime_content_type($localFile) ?: 'application/octet-stream';
+    header('Content-Type: ' . $mime);
+    header('Cache-Control: public, max-age=0'); // dev-friendly
+    readfile($localFile);
+    exit;
+}
+// --- end static asset shortcut ---
+
 /**
  * CityCare Landing Page
  */
@@ -39,14 +70,30 @@ if (isLoggedIn()) {
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
     <style>
-        /* Force navbar and footer blue - highest priority */
+        html {
+            height: 100%;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+        }
+        main {
+            flex: 1;
+        }
+        footer {
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        /* Force navbar and footer styling */
         .navbar, .navbar.navbar-light, .navbar.navbar-dark {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+            background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%) !important;
             background-color: #2563eb !important;
         }
         footer, footer.bg-dark {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
-            background-color: #2563eb !important;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e40af 100%) !important;
+            background-color: #1e40af !important;
             color: #ffffff !important;
         }
         footer p {
@@ -407,89 +454,30 @@ if (isLoggedIn()) {
                 </div>
             </div>
         </section>
-
-        <!-- Demo Credentials -->
-        <section class="py-5" style="background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);">
-            <div class="container">
-                <div class="card shadow-custom">
-                    <div class="card-header">
-                        <h3 class="mb-0">Demo Credentials</h3>
-                    </div>
-                    <div class="card-body p-4">
-                        <p class="text-muted mb-4 text-center">Try out CityCare with these demo accounts:</p>
-                        <div class="row g-4">
-                            <div class="col-md-4">
-                                <div class="card h-100" style="background: linear-gradient(135deg, var(--primary-blue-50) 0%, var(--white) 100%);">
-                                    <div class="card-body text-center">
-                                        <div class="mb-3">
-                                            <div class="bg-primary bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                                <svg width="30" height="30" fill="currentColor" style="color: var(--primary-blue);">
-                                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h5 class="fw-bold text-primary mb-3">Admin</h5>
-                                        <p class="mb-2"><strong>Username:</strong> <code class="bg-white px-2 py-1 rounded">admin_demo</code></p>
-                                        <p class="mb-0"><strong>Password:</strong> <code class="bg-white px-2 py-1 rounded">DemoPass123!</code></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card h-100" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, var(--white) 100%);">
-                                    <div class="card-body text-center">
-                                        <div class="mb-3">
-                                            <div class="bg-warning bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                                <svg width="30" height="30" fill="currentColor" style="color: #f59e0b;">
-                                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h5 class="fw-bold mb-3" style="color: #f59e0b;">Municipality Head</h5>
-                                        <p class="mb-2"><strong>Username:</strong> <code class="bg-white px-2 py-1 rounded">muni_demo</code></p>
-                                        <p class="mb-0"><strong>Password:</strong> <code class="bg-white px-2 py-1 rounded">DemoPass123!</code></p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="card h-100" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, var(--white) 100%);">
-                                    <div class="card-body text-center">
-                                        <div class="mb-3">
-                                            <div class="bg-success bg-opacity-20 rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
-                                                <svg width="30" height="30" fill="currentColor" style="color: var(--success-green);">
-                                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                                    <circle cx="12" cy="7" r="4"></circle>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                        <h5 class="fw-bold text-success mb-3">Civilian</h5>
-                                        <p class="mb-2"><strong>Username:</strong> <code class="bg-white px-2 py-1 rounded">user1</code></p>
-                                        <p class="mb-0"><strong>Password:</strong> <code class="bg-white px-2 py-1 rounded">DemoPass123!</code></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4 text-center">
-                            <a href="<?= url('/login.php') ?>" class="btn btn-primary btn-lg">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
-                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                    <polyline points="10 17 15 12 10 7"></polyline>
-                                    <line x1="15" y1="12" x2="3" y2="12"></line>
-                                </svg>
-                                Try Demo Now
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
     </main>
 
     <footer>
-        <div class="container text-center">
-            <p class="mb-0">&copy; 2024 CityCare. Smart City Reporting Platform.</p>
+        <div class="container">
+            <div class="row mb-3">
+                <div class="col-md-6 text-md-start text-center mb-3 mb-md-0">
+                    <h6 style="color: var(--accent-yellow); font-weight: 700; letter-spacing: 1px; margin-bottom: 0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.5rem; vertical-align: middle;">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                            <circle cx="12" cy="10" r="3"></circle>
+                        </svg>CityCare
+                    </h6>
+                    <p style="font-size: 0.95rem; margin-bottom: 0;">Smart City Reporting Platform</p>
+                </div>
+                <div class="col-md-6 text-md-end text-center">
+                    <p style="margin: 0; font-size: 0.9rem;">
+                        <a href="#" style="margin: 0 0.75rem;">About</a> •
+                        <a href="#" style="margin: 0 0.75rem;">Privacy</a> •
+                        <a href="#" style="margin: 0 0.75rem;">Contact</a>
+                    </p>
+                </div>
+            </div>
+            <hr style="border-color: rgba(255, 255, 255, 0.1); margin: 1.5rem 0;">
+            <p class="mb-0" style="text-align: center; font-size: 0.9rem; opacity: 0.85;">&copy; 2024 CityCare. Smart City Reporting Platform. All rights reserved.</p>
         </div>
     </footer>
 
