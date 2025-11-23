@@ -2,6 +2,16 @@
 
 A complete, production-like city reporting platform built with pure PHP, MySQL, Bootstrap, and Leaflet maps. Features AI-powered prioritization and cluster detection for efficient city management.
 
+| Role                  | Username        | Email                                                           |
+| --------------------- | --------------- | --------------------------------------------------------------- |
+| Admin                 | Admin           | [admin@admin.com](mailto:admin@admin.com)                       |
+| Authority (Road)      | RoadKs          | [roadks@ks.com](mailto:roadks@ks.com)                           |
+| Authority (Lighting)  | LightInsperctor | [lightInspector@gmail.com](mailto:lightInspector@gmail.com)     |
+| Authority (Vandalism) | VandalismKs     | [vandalismks@gmail.com](mailto:vandalismks@gmail.com)           |
+| Civilian              | user            | [user@gmail.com](mailto:user@gmail.com)                         |
+| Municipality Head     | MuncipalityHead | [municipalityhead@gmail.com](mailto:municipalityhead@gmail.com) |
+
+
 ## Features
 
 - **Three User Roles**: Civilian (report submission), Municipality Head (management), Admin (full access)
