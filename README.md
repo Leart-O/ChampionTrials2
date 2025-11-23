@@ -1,6 +1,7 @@
 # CityCare - Smart Reporting Platform
 
 A complete, production-like city reporting platform built with pure PHP, MySQL, Bootstrap, and Leaflet maps. Features AI-powered prioritization and cluster detection for efficient city management.
+ALL PASSWORDS: 12345678
 
 | Role                  | Username        | Email                                                           |
 | --------------------- | --------------- | --------------------------------------------------------------- |
