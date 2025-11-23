@@ -29,7 +29,7 @@ $success = isset($_GET['success']);
     <main class="container my-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>My Reports</h2>
-            <a href="<?= url('/user/submit_report.php') ?>" class="btn btn-primary">Submit New Report</a>
+            <a href="#" id="openCreateModal" class="btn btn-primary">Submit New Report</a>
         </div>
         
         <?php if ($success): ?>
@@ -100,6 +100,51 @@ $success = isset($_GET['success']);
         </div>
     </main>
 
+        <!-- AI / Create Modal -->
+        <div class="modal fade" id="createAiModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Report</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="d-flex gap-3 justify-content-center mb-3">
+                            <button id="createBlankBtn" class="btn btn-outline-primary">Create Blank Report</button>
+                            <button id="useAiBtn" class="btn btn-primary">Use AI Assistance</button>
+                        </div>
+
+                        <div id="aiFormWrapper" style="display:none;">
+                            <form id="aiAssistForm">
+                                <div class="mb-3">
+                                    <label for="aiDescription" class="form-label">Description</label>
+                                    <textarea id="aiDescription" name="description" class="form-control" rows="4" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="aiLat" class="form-label">Latitude (optional)</label>
+                                    <input id="aiLat" name="lat" class="form-control" type="text" />
+                                </div>
+                                <div class="mb-3">
+                                    <label for="aiLng" class="form-label">Longitude (optional)</label>
+                                    <input id="aiLng" name="lng" class="form-control" type="text" />
+                                </div>
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-success">Get AI Suggestions</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div id="aiLoading" style="display:none; text-align:center;">
+                            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>
+                            <div>Contacting AI...</div>
+                        </div>
+
+                        <div id="aiError" class="alert alert-danger" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
@@ -145,6 +190,90 @@ $success = isset($_GET['success']);
                                 html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,
                                 iconSize: [20, 20]
                             })
+                            // AI modal behavior
+                            (function(){
+                                const createAiModalEl = document.getElementById('createAiModal');
+                                if (!createAiModalEl) return;
+                                const createAiModal = new bootstrap.Modal(createAiModalEl);
+                                // floating button to open create modal
+                                const floatBtn = document.createElement('button');
+                                floatBtn.className = 'btn btn-primary rounded-circle';
+                                floatBtn.style.position = 'fixed';
+                                floatBtn.style.right = '20px';
+                                floatBtn.style.bottom = '20px';
+                                floatBtn.style.width = '56px';
+                                floatBtn.style.height = '56px';
+                                floatBtn.style.zIndex = '2000';
+                                floatBtn.innerHTML = '+';
+                                floatBtn.title = 'Create Report';
+                                floatBtn.addEventListener('click', function(){ createAiModal.show(); });
+                                document.body.appendChild(floatBtn);
+
+                                // also hook the top 'Submit New Report' button to open modal
+                                const openCreateBtn = document.getElementById('openCreateModal');
+                                if (openCreateBtn) {
+                                    openCreateBtn.addEventListener('click', function(e){
+                                        e.preventDefault();
+                                        createAiModal.show();
+                                    });
+                                }
+
+                                // Auto-show modal on page load (per user request)
+                                createAiModal.show();
+
+                                const createBlankBtn = document.getElementById('createBlankBtn');
+                                if (createBlankBtn) createBlankBtn.addEventListener('click', function(){
+                                    window.location = '<?= url('/user/submit_report.php') ?>';
+                                });
+
+                                const useAiBtn = document.getElementById('useAiBtn');
+                                if (useAiBtn) useAiBtn.addEventListener('click', function(){
+                                    const wrapper = document.getElementById('aiFormWrapper');
+                                    if (wrapper) wrapper.style.display = 'block';
+                                });
+
+                                const aiForm = document.getElementById('aiAssistForm');
+                                if (!aiForm) return;
+                                aiForm.addEventListener('submit', function(e){
+                                    e.preventDefault();
+                                    const errEl = document.getElementById('aiError'); if (errEl) errEl.style.display = 'none';
+                                    const loadEl = document.getElementById('aiLoading'); if (loadEl) loadEl.style.display = 'block';
+
+                                    const fd = new FormData(aiForm);
+                                    fd.append('action', 'ai_assist');
+
+                                    fetch('<?= url('/user/submit_report.php') ?>', {
+                                        method: 'POST',
+                                        body: fd,
+                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                                    }).then(r => r.json()).then(data => {
+                                        if (loadEl) loadEl.style.display = 'none';
+                                        if (!data) {
+                                            if (errEl) { errEl.innerText = 'No response from server'; errEl.style.display = 'block'; }
+                                            return;
+                                        }
+                                        if (data.error) {
+                                            if (errEl) { errEl.innerText = data.message || data.error; errEl.style.display = 'block'; }
+                                            return;
+                                        }
+
+                                        // Build query string to pass suggestions to submit page for editing/final submit
+                                        const params = new URLSearchParams();
+                                        if (data.title_suggestion) params.set('ai_title', data.title_suggestion);
+                                        if (data.category_suggestion) params.set('ai_category', data.category_suggestion);
+                                        if (data.summary) params.set('ai_summary', data.summary);
+                                        if (data.suggested_lat) params.set('ai_lat', data.suggested_lat);
+                                        if (data.suggested_lng) params.set('ai_lng', data.suggested_lng);
+
+                                        // close modal and redirect to submit page with prefill params
+                                        createAiModal.hide();
+                                        window.location = '<?= url('/user/submit_report.php') ?>' + (params.toString() ? ('?' + params.toString()) : '');
+                                    }).catch(err => {
+                                        if (loadEl) loadEl.style.display = 'none';
+                                        if (errEl) { errEl.innerText = err.message || 'Unknown error'; errEl.style.display = 'block'; }
+                                    });
+                                });
+                            })();
                         }).addTo(map);
                         
                         marker.bindPopup(`

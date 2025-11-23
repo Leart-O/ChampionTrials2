@@ -29,6 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
     }
+    // If this was an AJAX request, return JSON immediately
+    $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    if ($isAjax) {
+        header('Content-Type: application/json; charset=utf-8');
+        if ($aiSuggestions && is_array($aiSuggestions)) {
+            echo json_encode($aiSuggestions);
+        } else {
+            echo json_encode(['error' => 'ai_unavailable', 'message' => $error ?: 'AI assistant returned no suggestions']);
+        }
+        exit;
+    }
 }
 
 // Handle form submission
@@ -78,6 +89,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 $csrfToken = generateCSRFToken();
+
+// Prefill from query parameters (used when redirected after AI assist)
+$prefill_title = trim($_GET['ai_title'] ?? ($aiSuggestions['title_suggestion'] ?? ''));
+$prefill_category = trim($_GET['ai_category'] ?? ($aiSuggestions['category_suggestion'] ?? ''));
+$prefill_summary = trim($_GET['ai_summary'] ?? ($aiSuggestions['summary'] ?? ''));
+$prefill_lat = trim($_GET['ai_lat'] ?? ($aiSuggestions['suggested_lat'] ?? ''));
+$prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -102,8 +120,8 @@ $csrfToken = generateCSRFToken();
         <form method="POST" action="" enctype="multipart/form-data" id="reportForm">
             <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
             <input type="hidden" name="action" value="submit">
-            <input type="hidden" name="latitude" id="latitude" value="">
-            <input type="hidden" name="longitude" id="longitude" value="">
+            <input type="hidden" name="latitude" id="latitude" value="<?= h($prefill_lat) ?>">
+            <input type="hidden" name="longitude" id="longitude" value="<?= h($prefill_lng) ?>">
             
             <div class="row">
                 <div class="col-lg-8">
@@ -111,26 +129,26 @@ $csrfToken = generateCSRFToken();
                         <div class="card-body">
                             <div class="mb-3">
                                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="title" name="title" required 
-                                       value="<?= h($aiSuggestions['title_suggestion'] ?? '') ?>">
+                                    <input type="text" class="form-control" id="title" name="title" required 
+                                        value="<?= h($prefill_title ?: ($_POST['title'] ?? '')) ?>">
                             </div>
                             
                             <div class="mb-3">
                                 <label for="category" class="form-label">Category</label>
                                 <select class="form-select" id="category" name="category">
                                     <option value="">Select category</option>
-                                    <option value="pothole" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'pothole' ? 'selected' : '' ?>>Pothole</option>
-                                    <option value="lighting" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'lighting' ? 'selected' : '' ?>>Lighting</option>
-                                    <option value="water-leak" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'water-leak' ? 'selected' : '' ?>>Water Leak</option>
-                                    <option value="garbage/dumping" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'garbage/dumping' ? 'selected' : '' ?>>Garbage/Dumping</option>
-                                    <option value="traffic" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'traffic' ? 'selected' : '' ?>>Traffic</option>
-                                    <option value="other" <?= ($aiSuggestions['category_suggestion'] ?? '') === 'other' ? 'selected' : '' ?>>Other</option>
+                                    <option value="pothole" <?= ($prefill_category === 'pothole' || ($_POST['category'] ?? '') === 'pothole') ? 'selected' : '' ?>>Pothole</option>
+                                    <option value="lighting" <?= ($prefill_category === 'lighting' || ($_POST['category'] ?? '') === 'lighting') ? 'selected' : '' ?>>Lighting</option>
+                                    <option value="water-leak" <?= ($prefill_category === 'water-leak' || ($_POST['category'] ?? '') === 'water-leak') ? 'selected' : '' ?>>Water Leak</option>
+                                    <option value="garbage/dumping" <?= ($prefill_category === 'garbage/dumping' || ($_POST['category'] ?? '') === 'garbage/dumping') ? 'selected' : '' ?>>Garbage/Dumping</option>
+                                    <option value="traffic" <?= ($prefill_category === 'traffic' || ($_POST['category'] ?? '') === 'traffic') ? 'selected' : '' ?>>Traffic</option>
+                                    <option value="other" <?= ($prefill_category === 'other' || ($_POST['category'] ?? '') === 'other') ? 'selected' : '' ?>>Other</option>
                                 </select>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
-                                <textarea class="form-control" id="description" name="description" rows="5" required><?= h($_POST['description'] ?? '') ?></textarea>
+                                <textarea class="form-control" id="description" name="description" rows="5" required><?= h($_POST['description'] ?? $prefill_summary) ?></textarea>
                                 <small class="text-muted">Describe the issue in detail. Click "Get AI Assistance" for help.</small>
                             </div>
                             
@@ -143,13 +161,13 @@ $csrfToken = generateCSRFToken();
                                 </button>
                             </div>
                             
-                            <?php if ($aiSuggestions): ?>
+                            <?php if ($aiSuggestions || $prefill_title || $prefill_category || $prefill_summary): ?>
                                 <div class="alert alert-info">
                                     <strong>AI Suggestions:</strong>
                                     <ul class="mb-0 mt-2">
-                                        <li><strong>Title:</strong> <?= h($aiSuggestions['title_suggestion'] ?? 'N/A') ?></li>
-                                        <li><strong>Category:</strong> <?= h($aiSuggestions['category_suggestion'] ?? 'N/A') ?></li>
-                                        <li><strong>Summary:</strong> <?= h($aiSuggestions['summary'] ?? 'N/A') ?></li>
+                                        <li><strong>Title:</strong> <?= h($prefill_title ?: ($aiSuggestions['title_suggestion'] ?? 'N/A')) ?></li>
+                                        <li><strong>Category:</strong> <?= h($prefill_category ?: ($aiSuggestions['category_suggestion'] ?? 'N/A')) ?></li>
+                                        <li><strong>Summary:</strong> <?= h($prefill_summary ?: ($aiSuggestions['summary'] ?? 'N/A')) ?></li>
                                     </ul>
                                 </div>
                             <?php endif; ?>
@@ -226,6 +244,19 @@ $csrfToken = generateCSRFToken();
                 }
                 marker = L.marker([lat, lng]).addTo(map);
             });
+
+            // If AI provided lat/lng (via prefill), set marker
+            const prefillLat = <?= $prefill_lat !== '' ? json_encode((float)$prefill_lat) : 'null' ?>;
+            const prefillLng = <?= $prefill_lng !== '' ? json_encode((float)$prefill_lng) : 'null' ?>;
+            if (prefillLat !== null && prefillLng !== null) {
+                document.getElementById('latitude').value = prefillLat;
+                document.getElementById('longitude').value = prefillLng;
+                document.getElementById('latDisplay').textContent = parseFloat(prefillLat).toFixed(7);
+                document.getElementById('lngDisplay').textContent = parseFloat(prefillLng).toFixed(7);
+                if (marker) { map.removeLayer(marker); }
+                marker = L.marker([prefillLat, prefillLng]).addTo(map);
+                map.setView([prefillLat, prefillLng], 15);
+            }
             
             // Geolocate button
             document.getElementById('geolocateBtn').addEventListener('click', function() {
