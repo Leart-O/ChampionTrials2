@@ -60,17 +60,21 @@ if ($report) {
     if (!$helpSteps && $report) {
         $helpSteps = callAIHelpSteps($reportId, $report['title'], $report['description'], $report['category']);
         
-        // Cache the help steps in ai_logs if we have an existing entry
-        if ($helpSteps && $aiData) {
+        // Cache the help steps in ai_logs if we have an existing entry and generation succeeded
+        if ($helpSteps && is_array($helpSteps) && $aiData) {
             $parsed = json_decode($aiData['raw_response'], true);
             if (!$parsed) $parsed = [];
             $parsed['help_steps'] = $helpSteps;
             
-            $updateStmt = $pdo->prepare("UPDATE ai_logs SET raw_response = :raw_response WHERE log_id = :log_id");
-            $updateStmt->execute([
-                'raw_response' => json_encode($parsed),
-                'log_id' => $aiData['log_id']
-            ]);
+            try {
+                $updateStmt = $pdo->prepare("UPDATE ai_logs SET raw_response = :raw_response WHERE log_id = :log_id");
+                $updateStmt->execute([
+                    'raw_response' => json_encode($parsed),
+                    'log_id' => $aiData['log_id']
+                ]);
+            } catch (PDOException $e) {
+                error_log("Failed to cache help steps: " . $e->getMessage());
+            }
         }
     }
 }
@@ -93,19 +97,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif ($action === 'regenerate_help') {
             // Regenerate help steps
-            $helpSteps = callAIHelpSteps($reportId, $report['title'], $report['description'], $report['category']);
-            if ($helpSteps && $aiData) {
-                $parsed = json_decode($aiData['raw_response'], true);
-                if (!$parsed) $parsed = [];
-                $parsed['help_steps'] = $helpSteps;
+            $newHelpSteps = callAIHelpSteps($reportId, $report['title'], $report['description'], $report['category']);
+            
+            if ($newHelpSteps && is_array($newHelpSteps) && isset($newHelpSteps['steps'])) {
+                $helpSteps = $newHelpSteps;
                 
-                $updateStmt = $pdo->prepare("UPDATE ai_logs SET raw_response = :raw_response WHERE log_id = :log_id");
-                $updateStmt->execute([
-                    'raw_response' => json_encode($parsed),
-                    'log_id' => $aiData['log_id']
-                ]);
+                // Cache the help steps in ai_logs if we have an existing entry
+                if ($aiData) {
+                    $parsed = json_decode($aiData['raw_response'], true);
+                    if (!$parsed) $parsed = [];
+                    $parsed['help_steps'] = $helpSteps;
+                    
+                    try {
+                        $updateStmt = $pdo->prepare("UPDATE ai_logs SET raw_response = :raw_response WHERE log_id = :log_id");
+                        $updateStmt->execute([
+                            'raw_response' => json_encode($parsed),
+                            'log_id' => $aiData['log_id']
+                        ]);
+                        $success = true;
+                    } catch (PDOException $e) {
+                        $error = 'Help steps generated but failed to save: ' . $e->getMessage();
+                        error_log("Help Steps cache error: " . $e->getMessage());
+                    }
+                } else {
+                    $success = true;
+                }
+            } else {
+                $error = 'Failed to generate help steps from AI. Please check the API key and try again.';
+                error_log("Help Steps generation failed. Response: " . print_r($newHelpSteps, true));
             }
-            $success = true;
         }
     }
 }
@@ -215,7 +235,7 @@ if ($report) {
                         </form>
                     </div>
                     <div class="card-body">
-                        <?php if ($helpSteps && isset($helpSteps['steps'])): ?>
+                        <?php if ($helpSteps && isset($helpSteps['steps']) && is_array($helpSteps['steps']) && count($helpSteps['steps']) > 0): ?>
                             <?php if (isset($helpSteps['summary'])): ?>
                                 <div class="alert alert-info mb-3">
                                     <strong>Summary:</strong> <?= h($helpSteps['summary']) ?>
@@ -224,17 +244,17 @@ if ($report) {
                             <ol class="list-group list-group-numbered">
                                 <?php foreach ($helpSteps['steps'] as $index => $step): ?>
                                     <li class="list-group-item">
-                                        <?= h($step) ?>
+                                        <?= is_string($step) ? h($step) : h(json_encode($step)) ?>
                                     </li>
                                 <?php endforeach; ?>
                             </ol>
                         <?php else: ?>
                             <div class="alert alert-warning">
-                                <p class="mb-0">AI help steps are being generated. Please try refreshing the page in a moment.</p>
+                                <p class="mb-0">Generating AI help steps for this issue. This may take a moment...</p>
                                 <form method="POST" action="" class="mt-2">
                                     <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                     <input type="hidden" name="action" value="regenerate_help">
-                                    <button type="submit" class="btn btn-sm btn-primary">Generate Help Steps</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">Generate/Regenerate Help Steps</button>
                                 </form>
                             </div>
                         <?php endif; ?>
