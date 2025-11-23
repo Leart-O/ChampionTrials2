@@ -53,16 +53,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
         
         if ($action === 'create_authority') {
-            $result = createAuthority(
-                $_POST['name'] ?? '',
-                $_POST['type'] ?? '',
-                $_POST['contact_email'] ?? '',
-                $_POST['notes'] ?? ''
-            );
-            if ($result['success']) {
-                redirect('/admin/panel.php?success=1');
+            require_once __DIR__ . '/../../app/auth.php';
+            $name = trim($_POST['name'] ?? '');
+            $type = trim($_POST['type'] ?? '');
+            $contactEmail = trim($_POST['contact_email'] ?? '');
+            $notes = trim($_POST['notes'] ?? '');
+            $username = trim($_POST['username'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            
+            if (empty($name) || empty($type) || empty($contactEmail)) {
+                $error = 'Please fill in authority name, type, and email.';
+            } elseif (empty($username) || empty($email) || empty($password)) {
+                $error = 'Please fill in username, email, and password for the authority user account.';
             } else {
-                $error = $result['error'];
+                // Create user account for authority first
+                $userResult = registerUser($username, $email, $password, 4); // Role 4 = Authority
+                if ($userResult['success']) {
+                    // Create authority and link to user
+                    $result = createAuthority($name, $type, $contactEmail, $notes, $userResult['user_id']);
+                    if ($result['success']) {
+                        redirect('/admin/panel.php?success=1');
+                    } else {
+                        $error = 'User account created but authority creation failed: ' . $result['error'];
+                        // Try to clean up the user account
+                        try {
+                            $pdo->prepare("DELETE FROM users WHERE user_id = ?")->execute([$userResult['user_id']]);
+                        } catch (PDOException $e) {
+                            error_log("Failed to clean up user account: " . $e->getMessage());
+                        }
+                    }
+                } else {
+                    $error = 'User account creation failed: ' . $userResult['error'];
+                }
             }
         } elseif ($action === 'update_authority') {
             $result = updateAuthority(
@@ -89,6 +112,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reportId = intval($_POST['report_id'] ?? 0);
             $pdo->prepare("UPDATE reports SET is_verified = 1 WHERE report_id = ?")->execute([$reportId]);
             redirect('/admin/panel.php?success=1');
+        } elseif ($action === 'create_user') {
+            $username = trim($_POST['username'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $roleId = intval($_POST['role_id'] ?? 0);
+            
+            if (empty($username) || empty($email) || empty($password) || !$roleId) {
+                $error = 'Please fill in all fields.';
+            } else {
+                require_once __DIR__ . '/../../app/auth.php';
+                $result = registerUser($username, $email, $password, $roleId);
+                if ($result['success']) {
+                    redirect('/admin/panel.php?success=1');
+                } else {
+                    $error = $result['error'];
+                }
+            }
         }
     }
 }
@@ -214,6 +254,35 @@ $csrfToken = generateCSRFToken();
                         <h5 class="mb-0">Users</h5>
                     </div>
                     <div class="card-body">
+                        <form method="POST" action="" class="mb-3">
+                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                            <input type="hidden" name="action" value="create_user">
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <input type="text" class="form-control form-control-sm" name="username" placeholder="Username" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="email" class="form-control form-control-sm" name="email" placeholder="Email" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <select class="form-select form-select-sm" name="role_id" required>
+                                        <option value="">Role</option>
+                                        <option value="2">Municipality Head</option>
+                                        <option value="4">Authority</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100" title="Create User">+</button>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-12">
+                                    <input type="password" class="form-control form-control-sm" name="password" placeholder="Password (min 8 chars)" required minlength="8">
+                                </div>
+                            </div>
+                        </form>
+                        
                         <div class="table-responsive">
                             <table class="table table-sm">
                                 <thead>
@@ -241,32 +310,62 @@ $csrfToken = generateCSRFToken();
         
         <!-- Authorities Management -->
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Manage Authorities</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm" aria-expanded="false" aria-controls="createAuthorityForm">
+                    + Add New Authority
+                </button>
             </div>
             <div class="card-body">
-                <form method="POST" action="" class="mb-4">
-                    <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                    <input type="hidden" name="action" value="create_authority">
-                    
-                    <div class="row">
-                        <div class="col-md-3 mb-2">
-                            <input type="text" class="form-control" name="name" placeholder="Name" required>
-                        </div>
-                        <div class="col-md-2 mb-2">
-                            <input type="text" class="form-control" name="type" placeholder="Type" required>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <input type="email" class="form-control" name="contact_email" placeholder="Email" required>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <input type="text" class="form-control" name="notes" placeholder="Notes">
-                        </div>
-                        <div class="col-md-1 mb-2">
-                            <button type="submit" class="btn btn-primary w-100">Add</button>
-                        </div>
+                <div class="collapse mb-4" id="createAuthorityForm">
+                    <div class="card card-body bg-light">
+                        <h6>Create New Authority</h6>
+                        <p class="text-muted small mb-3">The user will log in with the username and password you provide below.</p>
+                        <form method="POST" action="">
+                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                            <input type="hidden" name="action" value="create_authority">
+                            
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Authority Name</label>
+                                    <input type="text" class="form-control form-control-sm" name="name" placeholder="Authority Name" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Type</label>
+                                    <input type="text" class="form-control form-control-sm" name="type" placeholder="Type (e.g., Road Maintenance)" required>
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small">Contact Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="contact_email" placeholder="Contact Email" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small">Notes (optional)</label>
+                                    <input type="text" class="form-control form-control-sm" name="notes" placeholder="Notes">
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <small class="text-muted">User Account Details (for login):</small>
+                            <div class="row g-2 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label small">Username</label>
+                                    <input type="text" class="form-control form-control-sm" name="username" placeholder="Username" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">User Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="email" placeholder="User Email" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small">Password</label>
+                                    <input type="password" class="form-control form-control-sm" name="password" placeholder="Password (min 8 chars)" required minlength="8">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-success">Create Authority</button>
+                            <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm">Cancel</button>
+                        </form>
                     </div>
-                </form>
+                </div>
                 
                 <div class="table-responsive">
                     <table class="table">

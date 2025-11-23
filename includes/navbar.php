@@ -27,6 +27,10 @@ if (!isset($user)) {
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('/municipality/dashboard.php') ?>">Dashboard</a>
                         </li>
+                    <?php elseif ($user['role_name'] === 'Authority'): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="<?= url('/authority/dashboard.php') ?>">Dashboard</a>
+                        </li>
                     <?php elseif ($user['role_name'] === 'Admin'): ?>
                         <li class="nav-item">
                             <a class="nav-link" href="<?= url('/admin/panel.php') ?>">Admin Panel</a>

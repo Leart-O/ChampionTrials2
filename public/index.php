@@ -7,6 +7,8 @@ require_once __DIR__ . '/../app/url_helper.php';
 
 startSecureSession();
 
+$error = $_GET['error'] ?? '';
+
 // Redirect if already logged in
 if (isLoggedIn()) {
     $user = getCurrentUser();
@@ -14,6 +16,14 @@ if (isLoggedIn()) {
         redirect('/municipality/dashboard.php');
     } elseif ($user['role_name'] === 'Admin') {
         redirect('/admin/panel.php');
+    } elseif ($user['role_name'] === 'Authority') {
+        // Check if authority is linked before redirecting
+        require_once __DIR__ . '/../app/reports.php';
+        $authorityId = getAuthorityIdForUser($user['user_id']);
+        if ($authorityId) {
+            redirect('/authority/dashboard.php');
+        }
+        // If no authority linked, stay on index page to show error
     } else {
         redirect('/user/dashboard.php');
     }
@@ -50,6 +60,12 @@ if (isLoggedIn()) {
     </nav>
 
     <main>
+        <?php if ($error === 'no_authority'): ?>
+            <div class="alert alert-warning m-4">
+                <strong>Notice:</strong> Your Authority account is not linked to an authority record. Please contact an administrator.
+            </div>
+        <?php endif; ?>
+        
         <!-- Hero Section -->
         <section class="hero-section py-5 bg-light">
             <div class="container">

@@ -276,6 +276,50 @@ function logAuditTrail($reportId, $userId, $action, $note = '') {
 }
 
 /**
+ * Get reports assigned to an authority
+ */
+function getAuthorityReports($authorityId) {
+    $pdo = getDB();
+    
+    $stmt = $pdo->prepare("
+        SELECT r.*, s.status_name, u.username, u.email
+        FROM reports r
+        JOIN report_status s ON r.status_id = s.status_id
+        JOIN users u ON r.user_id = u.user_id
+        WHERE r.assigned_to = :authority_id
+        AND s.status_name NOT IN ('Fixed', 'Rejected')
+        ORDER BY r.created_at DESC
+    ");
+    
+    $stmt->execute(['authority_id' => $authorityId]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * Get authority ID for a user
+ */
+function getAuthorityIdForUser($userId) {
+    $pdo = getDB();
+    
+    // Check if user_id column exists
+    try {
+        $columns = $pdo->query("SHOW COLUMNS FROM authorities LIKE 'user_id'")->fetch();
+        if ($columns === false) {
+            // Column doesn't exist, return null
+            return null;
+        }
+        
+        $stmt = $pdo->prepare("SELECT id FROM authorities WHERE user_id = :user_id");
+        $stmt->execute(['user_id' => $userId]);
+        $result = $stmt->fetch();
+        return $result ? $result['id'] : null;
+    } catch (PDOException $e) {
+        error_log("Error checking authority for user: " . $e->getMessage());
+        return null;
+    }
+}
+
+/**
  * Detect clusters of reports (within distance and time window)
  */
 function detectClusters($category = null, $distanceMeters = 500, $timeHours = 48) {

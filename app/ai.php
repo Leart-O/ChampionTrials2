@@ -230,3 +230,69 @@ function callAIPriority($reportId, $title, $description, $category = null) {
         return false;
     }
 }
+
+/**
+ * AI Help Steps Function
+ * Generates step-by-step instructions for authorities to resolve a report
+ * Returns: ['steps' => array, 'summary' => string] or false on error
+ */
+function callAIHelpSteps($reportId, $title, $description, $category = null) {
+    require_once __DIR__ . '/db.php';
+    
+    // Check if API key is configured
+    if (!defined('OPENROUTER_API_KEY') || OPENROUTER_API_KEY === '') {
+        return false;
+    }
+    
+    $fullDescription = "Title: $title\n";
+    if ($category) {
+        $fullDescription .= "Category: $category\n";
+    }
+    $fullDescription .= "Description: $description";
+    
+    $messages = [
+        [
+            "role" => "system",
+            "content" => "You are CityCare AI, an assistant helping municipal authorities resolve issues.
+                Return JSON ONLY, no extra text.
+                Fields:
+                - steps: array of 3-7 step-by-step instructions to resolve this issue. Each step should be clear and actionable.
+                - summary: brief summary (1-2 sentences) of the recommended approach.
+                
+                Provide practical, actionable steps that a field worker or authority can follow to resolve the reported issue.
+                Consider safety, efficiency, and best practices for municipal work."
+        ],
+        [
+            "role" => "user",
+            "content" => "Generate step-by-step instructions to resolve this issue:\n\n$fullDescription"
+        ]
+    ];
+    
+    $result = openrouterRequest($messages);
+    
+    if (isset($result["error"])) {
+        error_log("AI Help Steps Error: " . ($result["message"] ?? "Unknown error"));
+        return false;
+    }
+    
+    $jsonStr = $result["choices"][0]["message"]["content"];
+    $parsed = json_decode($jsonStr, true);
+    
+    if (!$parsed || !isset($parsed["steps"])) {
+        error_log("AI Help Steps: Invalid response format");
+        return false;
+    }
+    
+    // Ensure steps is an array
+    if (!is_array($parsed["steps"])) {
+        $parsed["steps"] = [$parsed["steps"]];
+    }
+    
+    $steps = $parsed["steps"];
+    $summary = $parsed["summary"] ?? "Follow the steps below to resolve this issue.";
+    
+    return [
+        'steps' => $steps,
+        'summary' => $summary
+    ];
+}

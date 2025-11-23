@@ -81,6 +81,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 callAIPriority($reportId, $report['title'], $report['description'], $report['category']);
                 redirect('/municipality/dashboard.php?success=1');
             }
+        } elseif ($action === 'create_authority') {
+            require_once __DIR__ . '/../../app/auth.php';
+            $name = trim($_POST['name'] ?? '');
+            $type = trim($_POST['type'] ?? '');
+            $contactEmail = trim($_POST['contact_email'] ?? '');
+            $notes = trim($_POST['notes'] ?? '');
+            $username = trim($_POST['username'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            
+            if (empty($name) || empty($type) || empty($contactEmail)) {
+                $error = 'Please fill in authority name, type, and email.';
+            } elseif (empty($username) || empty($email) || empty($password)) {
+                $error = 'Please fill in username, email, and password for the authority user account.';
+            } else {
+                // Create user account for authority first
+                $userResult = registerUser($username, $email, $password, 4); // Role 4 = Authority
+                if ($userResult['success']) {
+                    // Create authority and link to user
+                    $result = createAuthority($name, $type, $contactEmail, $notes, $userResult['user_id']);
+                    if ($result['success']) {
+                        redirect('/municipality/dashboard.php?success=1');
+                    } else {
+                        $error = 'User account created but authority creation failed: ' . $result['error'];
+                        // Try to clean up the user account
+                        try {
+                            $pdo->prepare("DELETE FROM users WHERE user_id = ?")->execute([$userResult['user_id']]);
+                        } catch (PDOException $e) {
+                            error_log("Failed to clean up user account: " . $e->getMessage());
+                        }
+                    }
+                } else {
+                    $error = 'User account creation failed: ' . $userResult['error'];
+                }
+            }
         }
     }
 }
@@ -109,6 +144,13 @@ $statuses = $stmt->fetchAll();
 
     <main class="container-fluid my-4">
         <h2 class="mb-4">Municipality Dashboard</h2>
+        
+        <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible fade show">
+                <?= h($error) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
         
         <?php if ($success): ?>
             <div class="alert alert-success alert-dismissible fade show">
@@ -179,12 +221,74 @@ $statuses = $stmt->fetchAll();
                                             <?php endif; ?>
                                         </div>
                                     </div>
-                                    <div class="mt-2">
+                                    <div class="mt-2 d-flex gap-2">
                                         <a href="<?= url('/municipality/report_view.php?id=' . $report['report_id']) ?>" 
                                            class="btn btn-sm btn-outline-primary">View</a>
+                                        <form method="POST" action="" style="display: inline;" onsubmit="return confirm('Re-run AI priority analysis for this report?');">
+                                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                            <input type="hidden" name="action" value="priority">
+                                            <input type="hidden" name="report_id" value="<?= $report['report_id'] ?>">
+                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Re-run AI Priority Analysis">
+                                                ↻ Re-run
+                                            </button>
+                                        </form>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Create Authority -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Create New Authority</h5>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm" aria-expanded="false" aria-controls="createAuthorityForm">
+                            + Add Authority
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="collapse" id="createAuthorityForm">
+                            <p class="text-muted small mb-3">Create a new authority and user account. The user will log in with the username and password you provide below.</p>
+                            <form method="POST" action="">
+                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
+                                <input type="hidden" name="action" value="create_authority">
+                                
+                                <div class="mb-2">
+                                    <label class="form-label small">Authority Name</label>
+                                    <input type="text" class="form-control form-control-sm" name="name" placeholder="Authority Name" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Type</label>
+                                    <input type="text" class="form-control form-control-sm" name="type" placeholder="Type (e.g., Road Maintenance)" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Contact Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="contact_email" placeholder="Contact Email" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Notes (optional)</label>
+                                    <input type="text" class="form-control form-control-sm" name="notes" placeholder="Notes">
+                                </div>
+                                <hr class="my-2">
+                                <small class="text-muted">User Account Details (for login):</small>
+                                <div class="mb-2">
+                                    <label class="form-label small">Username</label>
+                                    <input type="text" class="form-control form-control-sm" name="username" placeholder="Username" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">User Email</label>
+                                    <input type="email" class="form-control form-control-sm" name="email" placeholder="User Email" required>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small">Password</label>
+                                    <input type="password" class="form-control form-control-sm" name="password" placeholder="Password (min 8 chars)" required minlength="8">
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-sm btn-success">Create Authority</button>
+                                    <button type="button" class="btn btn-sm btn-secondary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm">Cancel</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -268,7 +372,7 @@ $statuses = $stmt->fetchAll();
                             <p class="mb-1"><strong>Priority:</strong> ${priority}/5</p>
                             <p class="mb-1"><small>Reporter: ${report.username || 'Anonymous'}</small></p>
                             <p class="mb-2"><small>${new Date(report.created_at).toLocaleString()}</small></p>
-                            <a href="<?= url('/municipality/report_view.php') ?>?id=${report.report_id}" class="btn btn-sm btn-primary">View Details</a>
+                            <a href="<?= url('/municipality/report_view.php') ?>?id=${report.report_id}" class="btn btn-sm btn-primary" style="text-decoration: none; color: white;">View Details</a>
                         </div>
                     `);
                     
