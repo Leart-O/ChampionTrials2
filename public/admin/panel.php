@@ -144,12 +144,26 @@ $csrfToken = generateCSRFToken();
     <title>Admin Panel - CityCare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
+    <style>
+        .navbar, .navbar.navbar-light, .navbar.navbar-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+            background-color: #2563eb !important;
+        }
+        footer, footer.bg-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+        footer p {
+            color: #ffffff !important;
+        }
+    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container my-4">
-        <h2 class="mb-4">Admin Panel</h2>
+    <main class="container my-4 flex-grow-1">
+        <h2 class="mb-4 fw-bold text-gradient">Admin Panel</h2>
         
         <?php if ($error): ?>
             <div class="alert alert-danger"><?= h($error) ?></div>
@@ -163,37 +177,29 @@ $csrfToken = generateCSRFToken();
         <?php endif; ?>
         
         <!-- Statistics -->
-        <div class="row mb-4">
+        <div class="row mb-4 g-4">
             <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="text-primary"><?= $stats['total_reports'] ?></h3>
-                        <p class="text-muted mb-0">Total Reports</p>
-                    </div>
+                <div class="stats-card primary text-center">
+                    <h3 class="text-primary"><?= $stats['total_reports'] ?></h3>
+                    <p class="text-muted mb-0 fw-semibold">Total Reports</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="text-warning"><?= $stats['pending_reports'] ?></h3>
-                        <p class="text-muted mb-0">Pending Reports</p>
-                    </div>
+                <div class="stats-card warning text-center">
+                    <h3 style="color: #f59e0b;"><?= $stats['pending_reports'] ?></h3>
+                    <p class="text-muted mb-0 fw-semibold">Pending Reports</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="text-info"><?= $stats['total_users'] ?></h3>
-                        <p class="text-muted mb-0">Total Users</p>
-                    </div>
+                <div class="stats-card info text-center">
+                    <h3 style="color: #06b6d4;"><?= $stats['total_users'] ?></h3>
+                    <p class="text-muted mb-0 fw-semibold">Total Users</p>
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card text-center">
-                    <div class="card-body">
-                        <h3 class="text-success"><?= $stats['total_authorities'] ?></h3>
-                        <p class="text-muted mb-0">Authorities</p>
-                    </div>
+                <div class="stats-card success text-center">
+                    <h3 class="text-success"><?= $stats['total_authorities'] ?></h3>
+                    <p class="text-muted mb-0 fw-semibold">Authorities</p>
                 </div>
             </div>
         </div>
@@ -201,13 +207,13 @@ $csrfToken = generateCSRFToken();
         <div class="row">
             <!-- Recent Reports -->
             <div class="col-lg-6 mb-4">
-                <div class="card">
+                <div class="card shadow-custom">
                     <div class="card-header">
                         <h5 class="mb-0">Recent Reports</h5>
                     </div>
                     <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-sm">
+                        <div class="table-responsive" style="border-radius: var(--radius-md);">
+                            <table class="table table-sm mb-0">
                                 <thead>
                                     <tr>
                                         <th>Title</th>
@@ -249,12 +255,12 @@ $csrfToken = generateCSRFToken();
             
             <!-- Users -->
             <div class="col-lg-6 mb-4">
-                <div class="card">
+                <div class="card shadow-custom">
                     <div class="card-header">
                         <h5 class="mb-0">Users</h5>
                     </div>
                     <div class="card-body">
-                        <form method="POST" action="" class="mb-3">
+                        <form method="POST" action="" class="mb-3 p-3 bg-light rounded">
                             <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                             <input type="hidden" name="action" value="create_user">
                             
@@ -283,8 +289,8 @@ $csrfToken = generateCSRFToken();
                             </div>
                         </form>
                         
-                        <div class="table-responsive">
-                            <table class="table table-sm">
+                        <div class="table-responsive" style="border-radius: var(--radius-md);">
+                            <table class="table table-sm mb-0">
                                 <thead>
                                     <tr>
                                         <th>Username</th>
@@ -309,7 +315,7 @@ $csrfToken = generateCSRFToken();
         </div>
         
         <!-- Authorities Management -->
-        <div class="card mb-4">
+        <div class="card mb-4 shadow-custom">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">Manage Authorities</h5>
                 <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm" aria-expanded="false" aria-controls="createAuthorityForm">
@@ -318,7 +324,7 @@ $csrfToken = generateCSRFToken();
             </div>
             <div class="card-body">
                 <div class="collapse mb-4" id="createAuthorityForm">
-                    <div class="card card-body bg-light">
+                    <div class="card card-body" style="background: linear-gradient(135deg, var(--primary-blue-50) 0%, var(--white) 100%);">
                         <h6>Create New Authority</h6>
                         <p class="text-muted small mb-3">The user will log in with the username and password you provide below.</p>
                         <form method="POST" action="">
@@ -367,8 +373,8 @@ $csrfToken = generateCSRFToken();
                     </div>
                 </div>
                 
-                <div class="table-responsive">
-                    <table class="table">
+                <div class="table-responsive" style="border-radius: var(--radius-md);">
+                    <table class="table mb-0">
                         <thead>
                             <tr>
                                 <th>Name</th>

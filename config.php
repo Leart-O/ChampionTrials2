@@ -14,7 +14,7 @@ define('DB_PASS', '');
 // Get your API key from https://openrouter.ai/ and set it here.
 if (!defined('OPENROUTER_API_KEY')) {
     // Set your OpenRouter API key here. Leave empty ('') to disable AI features.
-    define('OPENROUTER_API_KEY', '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');
+    define('OPENROUTER_API_KEY', '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');
 }
 
 if (!defined('OPENROUTER_MODEL')) {

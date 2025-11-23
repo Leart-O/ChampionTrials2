@@ -112,7 +112,7 @@ $imageBase64 = $report['image'] ? base64_encode($report['image']) : null;
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container my-4">
+    <main class="container my-4 flex-grow-1">
         <div class="mb-3">
             <a href="<?= url('/municipality/dashboard.php') ?>" class="text-decoration-none">← Back to Dashboard</a>
         </div>
@@ -127,14 +127,16 @@ $imageBase64 = $report['image'] ? base64_encode($report['image']) : null;
         
         <div class="row">
             <div class="col-lg-8">
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h3><?= h($report['title']) ?></h3>
+                <div class="card mb-3 shadow-custom">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0"><?= h($report['title']) ?></h3>
                             <span class="badge bg-<?= getStatusColor($report['status_name']) ?>">
                                 <?= h($report['status_name']) ?>
                             </span>
                         </div>
+                    </div>
+                    <div class="card-body">
                         
                         <?php if ($aiData): ?>
                             <div class="alert alert-<?= getPriorityColor($aiData['priority']) ?> mb-3">
@@ -182,7 +184,7 @@ $imageBase64 = $report['image'] ? base64_encode($report['image']) : null;
                 </div>
                 
                 <!-- Actions -->
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-custom">
                     <div class="card-body">
                         <h5>Actions</h5>
                         
@@ -317,7 +319,7 @@ $imageBase64 = $report['image'] ? base64_encode($report['image']) : null;
             <div class="col-lg-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Location</h5>
+                        <h5 class="card-title mb-0">Location</h5>
                         <div id="map" style="height: 300px; width: 100%;"></div>
                     </div>
                 </div>

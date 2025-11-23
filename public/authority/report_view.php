@@ -134,7 +134,7 @@ if ($report) {
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container my-4">
+    <main class="container my-4 flex-grow-1">
         <div class="mb-3">
             <a href="<?= url('/authority/dashboard.php') ?>" class="text-decoration-none">← Back to Dashboard</a>
         </div>
@@ -154,14 +154,16 @@ if ($report) {
         <?php else: ?>
         <div class="row">
             <div class="col-lg-8">
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h3><?= h($report['title']) ?></h3>
+                <div class="card mb-3 shadow-custom">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0"><?= h($report['title']) ?></h3>
                             <span class="badge bg-<?= getStatusColor($report['status_name']) ?>">
                                 <?= h($report['status_name']) ?>
                             </span>
                         </div>
+                    </div>
+                    <div class="card-body">
                         
                         <?php if ($aiData): ?>
                             <div class="alert alert-<?= getPriorityColor($aiData['priority']) ?> mb-3">
@@ -203,7 +205,7 @@ if ($report) {
                 </div>
                 
                 <!-- AI Help Steps -->
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-custom">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="mb-0">AI-Generated Help Steps</h5>
                         <form method="POST" action="" style="display: inline;">
@@ -240,7 +242,7 @@ if ($report) {
                 </div>
                 
                 <!-- Update Status -->
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-custom">
                     <div class="card-body">
                         <h5>Update Status</h5>
                         <form method="POST" action="">

@@ -65,29 +65,35 @@ $imageMime = 'image/jpeg'; // Default, could detect from BLOB
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container my-4">
+    <main class="container my-4 flex-grow-1">
         <div class="mb-3">
-            <a href="<?= url('/user/dashboard.php') ?>" class="text-decoration-none">← Back to Dashboard</a>
+            <a href="<?= url('/user/dashboard.php') ?>" class="btn btn-outline-secondary btn-sm">← Back to Dashboard</a>
         </div>
         
         <?php if ($error): ?>
-            <div class="alert alert-danger"><?= h($error) ?></div>
+            <div class="alert alert-danger alert-dismissible fade show"><?= h($error) ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
         
         <?php if ($success): ?>
-            <div class="alert alert-success">Report updated successfully!</div>
+            <div class="alert alert-success alert-dismissible fade show">Report updated successfully!
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
         
         <div class="row">
             <div class="col-lg-8">
-                <div class="card mb-3">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h3><?= h($report['title']) ?></h3>
+                <div class="card mb-3 shadow-custom">
+                    <div class="card-header">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="mb-0"><?= h($report['title']) ?></h3>
                             <span class="badge bg-<?= getStatusColor($report['status_name']) ?>">
                                 <?= h($report['status_name']) ?>
                             </span>
                         </div>
+                    </div>
+                    <div class="card-body">
                         
                         <?php if ($imageBase64): ?>
                             <div class="mb-3">
@@ -116,9 +122,9 @@ $imageMime = 'image/jpeg'; // Default, could detect from BLOB
                         <?php endif; ?>
                         
                         <?php if (!$report['is_verified']): ?>
-                            <hr>
-                            <h5>Edit Report</h5>
-                            <form method="POST" action="">
+                            <hr class="my-4">
+                            <h5 class="fw-bold mb-3">Edit Report</h5>
+                            <form method="POST" action="" class="p-3 bg-light rounded">
                                 <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
                                 <input type="hidden" name="action" value="update">
                                 
@@ -154,9 +160,11 @@ $imageMime = 'image/jpeg'; // Default, could detect from BLOB
             </div>
             
             <div class="col-lg-4">
-                <div class="card">
+                <div class="card shadow-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Location</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">Location</h5>
                         <div id="map" style="height: 300px; width: 100%;"></div>
                     </div>
                 </div>

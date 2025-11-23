@@ -106,12 +106,25 @@ $prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
+    <style>
+        .navbar, .navbar.navbar-light, .navbar.navbar-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+            background-color: #2563eb !important;
+        }
+        #map {
+            height: 300px !important;
+            width: 100% !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container my-4">
-        <h2 class="mb-4">Submit New Report</h2>
+    <main class="container my-4 flex-grow-1">
+        <h2 class="mb-4 fw-bold text-gradient">Submit New Report</h2>
 
         <!-- Choice: Manual or AI assisted -->
         <div class="row mb-4" id="submissionChoice">
@@ -148,7 +161,7 @@ $prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
             
             <div class="row">
                 <div class="col-lg-8">
-                    <div class="card mb-3">
+                    <div class="card mb-3 shadow-custom">
                         <div class="card-body">
                             <div class="mb-3 manual-field" id="titleField">
                                 <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
@@ -197,10 +210,12 @@ $prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
                 </div>
                 
                 <div class="col-lg-4">
-                    <div class="card mb-3">
+                    <div class="card mb-3 shadow-custom">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Location</h5>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title">Location</h5>
-                            <p class="text-muted small">Click on the map to set the location, or use the geolocate button.</p>
+                            <p class="text-muted small mb-3">Click on the map to set the location, or use the geolocate button.</p>
                             <div id="map" style="height: 300px; width: 100%;" class="mb-3"></div>
                             <button type="button" class="btn btn-sm btn-outline-primary w-100" id="geolocateBtn">
                                 Use My Location
@@ -260,7 +275,6 @@ $prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="/assets/js/map.js"></script>
     <script>
         // Initialize map for report submission
         let map, marker;
@@ -274,15 +288,56 @@ $prefill_lng = trim($_GET['ai_lng'] ?? ($aiSuggestions['suggested_lng'] ?? ''));
                     return;
                 }
                 
-                // Initialize map centered on Pristina, Kosovo
-                map = L.map('map').setView([42.6026, 20.9030], 13);
+                // Ensure container has proper dimensions
+                if (mapContainer.offsetHeight === 0 || mapContainer.offsetWidth === 0) {
+                    mapContainer.style.height = '300px';
+                    mapContainer.style.width = '100%';
+                }
                 
-                // Add OpenStreetMap tiles (correct template)
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                // Initialize map centered on Pristina, Kosovo
+                map = L.map('map', {
+                    preferCanvas: false
+                }).setView([42.6026, 20.9030], 13);
+                
+                // Add OpenStreetMap tiles with proper error handling and retry
+                const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
                     maxZoom: 19,
-                    subdomains: ['a','b','c']
+                    subdomains: ['a','b','c'],
+                    errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+                    tileSize: 256,
+                    zoomOffset: 0
                 }).addTo(map);
+                
+                // Force map to recalculate size after initialization
+                setTimeout(function() {
+                    map.invalidateSize();
+                    // Trigger a second invalidate to ensure tiles load
+                    setTimeout(function() {
+                        map.invalidateSize();
+                    }, 300);
+                }, 200);
+                
+                // Also invalidate on window resize and when form container becomes visible
+                window.addEventListener('resize', function() {
+                    setTimeout(function() {
+                        map.invalidateSize();
+                    }, 100);
+                });
+                
+                // Invalidate when form becomes visible (if it was hidden initially)
+                const formContainer = document.getElementById('reportFormContainer');
+                if (formContainer && formContainer.classList.contains('d-none')) {
+                    const observer = new MutationObserver(function(mutations) {
+                        if (!formContainer.classList.contains('d-none')) {
+                            setTimeout(function() {
+                                map.invalidateSize();
+                            }, 200);
+                            observer.disconnect();
+                        }
+                    });
+                    observer.observe(formContainer, { attributes: true, attributeFilter: ['class'] });
+                }
             
             // Click handler to set location
             map.on('click', function(e) {

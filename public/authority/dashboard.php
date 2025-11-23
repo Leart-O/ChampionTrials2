@@ -111,12 +111,26 @@ $csrfToken = generateCSRFToken();
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
+    <style>
+        .navbar, .navbar.navbar-light, .navbar.navbar-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+            background-color: #2563eb !important;
+        }
+        footer, footer.bg-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%) !important;
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+        footer p {
+            color: #ffffff !important;
+        }
+    </style>
 </head>
 <body>
     <?php include __DIR__ . '/../../includes/navbar.php'; ?>
 
-    <main class="container-fluid my-4">
-        <h2 class="mb-4">Authority Dashboard</h2>
+    <main class="container-fluid my-4 flex-grow-1">
+        <h2 class="mb-4 fw-bold text-gradient">Authority Dashboard</h2>
         
         <?php if ($error): ?>
             <div class="alert alert-danger alert-dismissible fade show">
@@ -134,9 +148,11 @@ $csrfToken = generateCSRFToken();
         
         <div class="row">
             <div class="col-lg-8">
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assigned Reports Map</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">Assigned Reports Map</h5>
                         <div id="map" style="height: 600px; width: 100%; min-height: 600px; position: relative; z-index: 0;"></div>
                         <div class="mt-3">
                             <div class="row">
@@ -162,10 +178,12 @@ $csrfToken = generateCSRFToken();
             </div>
             
             <div class="col-lg-4">
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assigned Reports</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">Assigned Reports</h5>
-                        <p class="text-muted small">Reports assigned to your authority</p>
+                        <p class="text-muted small mb-3">Reports assigned to your authority</p>
                         <div class="list-group" style="max-height: 600px; overflow-y: auto;">
                             <?php if (empty($reports)): ?>
                                 <div class="list-group-item text-center text-muted">

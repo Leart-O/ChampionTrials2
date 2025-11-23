@@ -63,23 +63,31 @@ $csrfToken = generateCSRFToken();
     <title>Login - CityCare</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
+    <style>
+        .navbar, .navbar.navbar-light, .navbar.navbar-dark {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+            background-color: #2563eb !important;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-lg modern-navbar">
         <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="<?= url('/index.php') ?>">CityCare</a>
+            <a class="navbar-brand fw-bold" href="<?= url('/index.php') ?>">CityCare</a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="<?= url('/register.php') ?>">Register</a>
             </div>
         </div>
     </nav>
 
-    <main class="container my-5">
+    <main class="container my-5 flex-grow-1">
         <div class="row justify-content-center">
-            <div class="col-md-6 col-lg-4">
-                <div class="card shadow-sm">
+            <div class="col-md-6 col-lg-5">
+                <div class="card shadow-custom">
+                    <div class="card-header">
+                        <h2 class="card-title text-center mb-0">Login</h2>
+                    </div>
                     <div class="card-body p-4">
-                        <h2 class="card-title text-center mb-4">Login</h2>
                         
                         <?php if ($error): ?>
                             <div class="alert alert-danger"><?= h($error) ?></div>
@@ -107,11 +115,13 @@ $csrfToken = generateCSRFToken();
                         
                         <hr class="my-4">
                         
-                        <div class="small text-muted">
+                        <div class="alert alert-info">
                             <strong>Demo Accounts:</strong><br>
-                            Admin: admin_demo / DemoPass123!<br>
-                            Municipality: muni_demo / DemoPass123!<br>
-                            User: user1 / DemoPass123!
+                            <small>
+                                Admin: <code>admin_demo</code> / <code>DemoPass123!</code><br>
+                                Municipality: <code>muni_demo</code> / <code>DemoPass123!</code><br>
+                                User: <code>user1</code> / <code>DemoPass123!</code>
+                            </small>
                         </div>
                     </div>
                 </div>
