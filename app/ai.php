@@ -104,16 +104,11 @@ function callAIAssistant($description) {
     $messages = [
         [
             "role" => "system",
-            "content" => "You are CityCare AI, an assistant for analyzing municipal issues.
-                Return JSON ONLY, no extra text.
-                Fields:
-                - category: one of ['road_damage','lighting','trash','water','hazard','other']
-                - urgency: one of ['low','medium','high','critical']
-                - reason: brief explanation."
+            "content" => "You are CityCare AI, an assistant for municipal issue reporting. Return JSON ONLY, no extra text.\nFields to return (use these exact keys):\n- title_suggestion: a short, clear title for the report (max 10 words)\n- category_suggestion: one of ['pothole','lighting','water-leak','garbage/dumping','traffic','other']\n- summary: a rewritten, clearer version of the user's description suitable for the report body\n- suggested_lat: optional latitude hint (decimal) or null\n- suggested_lng: optional longitude hint (decimal) or null\nIf you cannot determine lat/lng return null for them."
         ],
         [
             "role" => "user",
-            "content" => $description
+            "content" => "User description:\n" . $description
         ]
     ];
 
@@ -125,14 +120,31 @@ function callAIAssistant($description) {
 
     $jsonStr = $result["choices"][0]["message"]["content"];
 
-    // Try decoding returned JSON
+    // Try decoding returned JSON. Some models may include surrounding text — try to extract the JSON object.
     $parsed = json_decode($jsonStr, true);
-
     if (!$parsed) {
+        // Attempt to find the first JSON object in the string
+        $firstBrace = strpos($jsonStr, '{');
+        $lastBrace = strrpos($jsonStr, '}');
+        if ($firstBrace !== false && $lastBrace !== false && $lastBrace > $firstBrace) {
+            $maybe = substr($jsonStr, $firstBrace, $lastBrace - $firstBrace + 1);
+            $parsed = json_decode($maybe, true);
+        }
+    }
+
+    if (!$parsed || !is_array($parsed)) {
         return false;
     }
 
-    return $parsed;
+    // Normalize keys to what the frontend expects
+    $out = [];
+    $out['title_suggestion'] = $parsed['title_suggestion'] ?? $parsed['title'] ?? '';
+    $out['category_suggestion'] = $parsed['category_suggestion'] ?? $parsed['category'] ?? ($parsed['category_name'] ?? '');
+    $out['summary'] = $parsed['summary'] ?? $parsed['rewrite'] ?? $parsed['description'] ?? '';
+    $out['suggested_lat'] = isset($parsed['suggested_lat']) ? $parsed['suggested_lat'] : null;
+    $out['suggested_lng'] = isset($parsed['suggested_lng']) ? $parsed['suggested_lng'] : null;
+
+    return $out;
 }
 
 /**
