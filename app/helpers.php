@@ -121,8 +121,8 @@ function getPriorityColor($priority) {
     if ($priority >= 5) return 'danger';
     if ($priority >= 4) return 'warning';
     if ($priority >= 3) return 'info';
-    if ($priority >= 2) return 'secondary';
-    return 'light';
+    if ($priority >= 2) return 'primary';
+    return 'dark';
 }
 
 /**

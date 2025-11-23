@@ -123,13 +123,28 @@ $statuses = $stmt->fetchAll();
                     <div class="card-body">
                         <h5 class="card-title">Reports Map</h5>
                         <div id="map" style="height: 600px; width: 100%;"></div>
-                        <div class="mt-3 small">
-                            <strong>Legend:</strong>
-                            <span class="badge bg-warning me-2">Pending</span>
-                            <span class="badge bg-info me-2">In-Progress</span>
-                            <span class="badge bg-success me-2">Fixed</span>
-                            <span class="badge bg-danger me-2">Priority 5</span>
-                            <span class="badge bg-warning me-2">Priority 4</span>
+                        <div class="mt-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Status Colors:</strong>
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning me-2">Pending</span>
+                                        <span class="badge bg-info me-2">In-Progress</span>
+                                        <span class="badge bg-success me-2">Fixed</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Priority Levels (Border Color):</strong>
+                                    <div class="mt-1">
+                                        <span class="badge bg-danger me-2">Priority 5 (Red Border)</span>
+                                        <span class="badge bg-warning me-2">Priority 4 (Orange Border)</span>
+                                        <span class="badge bg-info me-2">Priority 3 (Cyan Border)</span>
+                                        <span class="badge bg-primary me-2">Priority 2</span>
+                                        <span class="badge bg-dark me-2">Priority 1</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">Marker border thickness indicates priority level</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -213,15 +228,30 @@ $statuses = $stmt->fetchAll();
                     const aiData = aiPriorities[report.report_id] || {};
                     const priority = aiData.priority || 1;
                     
+                    // Status-based base color
                     let color = 'gray';
-                    if (report.status_name === 'Pending') color = 'orange';
-                    else if (report.status_name === 'In-Progress') color = 'blue';
-                    else if (report.status_name === 'Fixed') color = 'green';
+                    if (report.status_name === 'Pending') color = '#ffc107'; // Bootstrap warning (orange/yellow)
+                    else if (report.status_name === 'In-Progress') color = '#0dcaf0'; // Bootstrap info (cyan/blue)
+                    else if (report.status_name === 'Fixed') color = '#198754'; // Bootstrap success (green)
+                    
+                    // Priority-based border: higher priority = thicker, more visible border
+                    let borderColor = 'transparent';
+                    let borderWidth = '2px';
+                    if (priority >= 5) {
+                        borderColor = '#dc3545'; // Red for highest priority
+                        borderWidth = '4px';
+                    } else if (priority >= 4) {
+                        borderColor = '#fd7e14'; // Orange for high priority (different from pending)
+                        borderWidth = '3px';
+                    } else if (priority >= 3) {
+                        borderColor = '#0dcaf0'; // Cyan for medium priority
+                        borderWidth = '2px';
+                    }
                     
                     const marker = L.marker([lat, lng], {
                         icon: L.divIcon({
                             className: 'custom-marker',
-                            html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 2px ${priority >= 4 ? 'red' : 'transparent'};"></div>`,
+                            html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 ${borderWidth} ${borderColor};"></div>`,
                             iconSize: [24, 24]
                         })
                     });

@@ -81,6 +81,7 @@ function getUserReports($userId) {
 
 /**
  * Get all active reports (for municipality dashboard)
+ * Excludes Fixed and Rejected reports
  */
 function getAllActiveReports($limit = 1000, $days = 30) {
     $pdo = getDB();
@@ -91,7 +92,7 @@ function getAllActiveReports($limit = 1000, $days = 30) {
         JOIN report_status s ON r.status_id = s.status_id
         JOIN users u ON r.user_id = u.user_id
         WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL :days DAY)
-        AND s.status_name != 'Fixed'
+        AND s.status_name NOT IN ('Fixed', 'Rejected')
         ORDER BY r.created_at DESC
         LIMIT :limit
     ");

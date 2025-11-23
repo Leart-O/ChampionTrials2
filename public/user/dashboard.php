@@ -29,7 +29,7 @@ $success = isset($_GET['success']);
     <main class="container my-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2>My Reports</h2>
-            <a href="#" id="openCreateModal" class="btn btn-primary">Submit New Report</a>
+            <a href="<?= url('/user/submit_report.php') ?>" class="btn btn-primary">Submit New Report</a>
         </div>
         
         <?php if ($success): ?>
@@ -86,7 +86,7 @@ $success = isset($_GET['success']);
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Reports Map</h5>
-                        <div id="map" style="height: 400px; width: 100%;"></div>
+                        <div id="map" style="height: 400px; width: 100%; min-height: 400px; position: relative; z-index: 0;"></div>
                         <div class="mt-3 small">
                             <div class="d-flex align-items-center mb-2">
                                 <span class="badge bg-warning me-2">Pending</span>
@@ -152,145 +152,180 @@ $success = isset($_GET['success']);
         const reports = <?= json_encode($reports) ?>;
         
         document.addEventListener('DOMContentLoaded', function() {
-            try {
-                // Ensure map container exists and is visible
-                const mapContainer = document.getElementById('map');
-                if (!mapContainer) {
-                    console.error('Map container not found');
-                    return;
-                }
-                
-                // Initialize map centered on Pristina, Kosovo
-                const map = L.map('map').setView([42.6026, 20.9030], 13);
-                
-                // Add OpenStreetMap tiles
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '© OpenStreetMap contributors',
-                    maxZoom: 19,
-                    subdomains: ['a','b','c']
-                }).addTo(map);
-                
-                const bounds = [];
-                
-                // Add markers for each report
-                reports.forEach(function(report) {
-                    if (report.latitude && report.longitude) {
-                        const lat = parseFloat(report.latitude);
-                        const lng = parseFloat(report.longitude);
-                        bounds.push([lat, lng]);
-                        
-                        let color = 'gray';
-                        if (report.status_name === 'Pending') color = 'orange';
-                        else if (report.status_name === 'In-Progress') color = 'blue';
-                        else if (report.status_name === 'Fixed') color = 'green';
-                        
-                        const marker = L.marker([lat, lng], {
-                            icon: L.divIcon({
-                                className: 'custom-marker',
-                                html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,
-                                iconSize: [20, 20]
-                            })
-                            // AI modal behavior
-                            (function(){
-                                const createAiModalEl = document.getElementById('createAiModal');
-                                if (!createAiModalEl) return;
-                                const createAiModal = new bootstrap.Modal(createAiModalEl);
-                                // floating button to open create modal
-                                const floatBtn = document.createElement('button');
-                                floatBtn.className = 'btn btn-primary rounded-circle';
-                                floatBtn.style.position = 'fixed';
-                                floatBtn.style.right = '20px';
-                                floatBtn.style.bottom = '20px';
-                                floatBtn.style.width = '56px';
-                                floatBtn.style.height = '56px';
-                                floatBtn.style.zIndex = '2000';
-                                floatBtn.innerHTML = '+';
-                                floatBtn.title = 'Create Report';
-                                floatBtn.addEventListener('click', function(){ createAiModal.show(); });
-                                document.body.appendChild(floatBtn);
-
-                                // also hook the top 'Submit New Report' button to open modal
-                                const openCreateBtn = document.getElementById('openCreateModal');
-                                if (openCreateBtn) {
-                                    openCreateBtn.addEventListener('click', function(e){
-                                        e.preventDefault();
-                                        createAiModal.show();
-                                    });
-                                }
-
-                                // Auto-show modal on page load (per user request)
-                                createAiModal.show();
-
-                                const createBlankBtn = document.getElementById('createBlankBtn');
-                                if (createBlankBtn) createBlankBtn.addEventListener('click', function(){
-                                    window.location = '<?= url('/user/submit_report.php') ?>';
-                                });
-
-                                const useAiBtn = document.getElementById('useAiBtn');
-                                if (useAiBtn) useAiBtn.addEventListener('click', function(){
-                                    const wrapper = document.getElementById('aiFormWrapper');
-                                    if (wrapper) wrapper.style.display = 'block';
-                                });
-
-                                const aiForm = document.getElementById('aiAssistForm');
-                                if (!aiForm) return;
-                                aiForm.addEventListener('submit', function(e){
-                                    e.preventDefault();
-                                    const errEl = document.getElementById('aiError'); if (errEl) errEl.style.display = 'none';
-                                    const loadEl = document.getElementById('aiLoading'); if (loadEl) loadEl.style.display = 'block';
-
-                                    const fd = new FormData(aiForm);
-                                    fd.append('action', 'ai_assist');
-
-                                    fetch('<?= url('/user/submit_report.php') ?>', {
-                                        method: 'POST',
-                                        body: fd,
-                                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                                    }).then(r => r.json()).then(data => {
-                                        if (loadEl) loadEl.style.display = 'none';
-                                        if (!data) {
-                                            if (errEl) { errEl.innerText = 'No response from server'; errEl.style.display = 'block'; }
-                                            return;
-                                        }
-                                        if (data.error) {
-                                            if (errEl) { errEl.innerText = data.message || data.error; errEl.style.display = 'block'; }
-                                            return;
-                                        }
-
-                                        // Build query string to pass suggestions to submit page for editing/final submit
-                                        const params = new URLSearchParams();
-                                        if (data.title_suggestion) params.set('ai_title', data.title_suggestion);
-                                        if (data.category_suggestion) params.set('ai_category', data.category_suggestion);
-                                        if (data.summary) params.set('ai_summary', data.summary);
-                                        if (data.suggested_lat) params.set('ai_lat', data.suggested_lat);
-                                        if (data.suggested_lng) params.set('ai_lng', data.suggested_lng);
-
-                                        // close modal and redirect to submit page with prefill params
-                                        createAiModal.hide();
-                                        window.location = '<?= url('/user/submit_report.php') ?>' + (params.toString() ? ('?' + params.toString()) : '');
-                                    }).catch(err => {
-                                        if (loadEl) loadEl.style.display = 'none';
-                                        if (errEl) { errEl.innerText = err.message || 'Unknown error'; errEl.style.display = 'block'; }
-                                    });
-                                });
-                            })();
-                        }).addTo(map);
-                        
-                        marker.bindPopup(`
-                            <strong>${report.title}</strong><br>
-                            Status: ${report.status_name}<br>
-                            <a href="<?= url('/user/report_view.php?id=') ?>${report.report_id}">View Details</a>
-                        `);
+            // Wait a bit to ensure container is fully rendered
+            setTimeout(function() {
+                try {
+                    // Ensure map container exists and is visible
+                    const mapContainer = document.getElementById('map');
+                    if (!mapContainer) {
+                        console.error('Map container not found');
+                        return;
                     }
-                });
-                
-                // Fit bounds if we have reports, otherwise keep default view
-                if (bounds.length > 0) {
-                    map.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    // Ensure container is visible and has dimensions
+                    if (mapContainer.offsetHeight === 0 || mapContainer.offsetWidth === 0) {
+                        console.warn('Map container has no dimensions, forcing display');
+                        mapContainer.style.display = 'block';
+                        mapContainer.style.height = '400px';
+                        mapContainer.style.width = '100%';
+                    }
+                    
+                    // Check if Leaflet is loaded
+                    if (typeof L === 'undefined') {
+                        console.error('Leaflet library not loaded');
+                        return;
+                    }
+                    
+                    // Initialize map centered on Pristina, Kosovo
+                    const map = L.map('map', {
+                        preferCanvas: false
+                    }).setView([42.6026, 20.9030], 13);
+                    
+                    // Add OpenStreetMap tiles
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors',
+                        maxZoom: 19,
+                        subdomains: ['a','b','c']
+                    }).addTo(map);
+                    
+                    // Force map to recalculate size after initialization
+                    setTimeout(function() {
+                        map.invalidateSize();
+                        console.log('Map initialized successfully');
+                    }, 200);
+                    
+                    const bounds = [];
+                    
+                    // Filter out Fixed and Rejected reports from map (but keep in table)
+                    const mapReports = reports.filter(function(report) {
+                        return report.status_name !== 'Fixed' && report.status_name !== 'Rejected';
+                    });
+                    
+                    // Add markers for each active report
+                    mapReports.forEach(function(report) {
+                        if (report.latitude && report.longitude) {
+                            const lat = parseFloat(report.latitude);
+                            const lng = parseFloat(report.longitude);
+                            bounds.push([lat, lng]);
+                            
+                            let color = 'gray';
+                            if (report.status_name === 'Pending') color = 'orange';
+                            else if (report.status_name === 'In-Progress') color = 'blue';
+                            
+                            const marker = L.marker([lat, lng], {
+                                icon: L.divIcon({
+                                    className: 'custom-marker',
+                                    html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white;"></div>`,
+                                    iconSize: [20, 20]
+                                })
+                            });
+                            
+                            marker.bindPopup(`
+                                <strong>${report.title}</strong><br>
+                                Status: ${report.status_name}<br>
+                                <a href="<?= url('/user/report_view.php?id=') ?>${report.report_id}">View Details</a>
+                            `);
+                            
+                            marker.addTo(map);
+                        }
+                    });
+                    
+                    // Fit bounds if we have active reports on map, otherwise keep default view
+                    if (bounds.length > 0) {
+                        map.fitBounds(bounds, { padding: [50, 50] });
+                    } else {
+                        // Ensure map is visible even with no reports
+                        map.invalidateSize();
+                    }
+                } catch (error) {
+                    console.error('Error initializing map:', error);
                 }
-            } catch (error) {
-                console.error('Error initializing map:', error);
-            }
+            }, 100); // Small delay to ensure container is rendered
+            
+            // AI modal behavior (initialize once, not per marker)
+            (function(){
+                    const createAiModalEl = document.getElementById('createAiModal');
+                    if (!createAiModalEl) return;
+                    const createAiModal = new bootstrap.Modal(createAiModalEl);
+                    // floating button to open create modal
+                    const floatBtn = document.createElement('button');
+                    floatBtn.className = 'btn btn-primary rounded-circle';
+                    floatBtn.style.position = 'fixed';
+                    floatBtn.style.right = '20px';
+                    floatBtn.style.bottom = '20px';
+                    floatBtn.style.width = '56px';
+                    floatBtn.style.height = '56px';
+                    floatBtn.style.zIndex = '2000';
+                    floatBtn.innerHTML = '+';
+                    floatBtn.title = 'Create Report';
+                    floatBtn.addEventListener('click', function(){ createAiModal.show(); });
+                    document.body.appendChild(floatBtn);
+
+                    // also hook the top 'Submit New Report' button to open modal
+                    const openCreateBtn = document.getElementById('openCreateModal');
+                    if (openCreateBtn) {
+                        openCreateBtn.addEventListener('click', function(e){
+                            e.preventDefault();
+                            createAiModal.show();
+                        });
+                    }
+
+                    // Auto-show modal on page load (per user request)
+                    createAiModal.show();
+
+                    const createBlankBtn = document.getElementById('createBlankBtn');
+                    if (createBlankBtn) createBlankBtn.addEventListener('click', function(){
+                        window.location = '<?= url('/user/submit_report.php') ?>';
+                    });
+
+                    const useAiBtn = document.getElementById('useAiBtn');
+                    if (useAiBtn) useAiBtn.addEventListener('click', function(){
+                        const wrapper = document.getElementById('aiFormWrapper');
+                        if (wrapper) wrapper.style.display = 'block';
+                    });
+
+                    const aiForm = document.getElementById('aiAssistForm');
+                    if (!aiForm) return;
+                    aiForm.addEventListener('submit', function(e){
+                        e.preventDefault();
+                        const errEl = document.getElementById('aiError'); if (errEl) errEl.style.display = 'none';
+                        const loadEl = document.getElementById('aiLoading'); if (loadEl) loadEl.style.display = 'block';
+
+                        const fd = new FormData(aiForm);
+                        fd.append('action', 'ai_assist');
+
+                        fetch('<?= url('/user/submit_report.php') ?>', {
+                            method: 'POST',
+                            body: fd,
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                        }).then(r => r.json()).then(data => {
+                            if (loadEl) loadEl.style.display = 'none';
+                            if (!data) {
+                                if (errEl) { errEl.innerText = 'No response from server'; errEl.style.display = 'block'; }
+                                return;
+                            }
+                            if (data.error) {
+                                if (errEl) { errEl.innerText = data.message || data.error; errEl.style.display = 'block'; }
+                                return;
+                            }
+
+                            // Build query string to pass suggestions to submit page for editing/final submit
+                            const params = new URLSearchParams();
+                            if (data.title_suggestion) params.set('ai_title', data.title_suggestion);
+                            if (data.category_suggestion) params.set('ai_category', data.category_suggestion);
+                            if (data.summary) params.set('ai_summary', data.summary);
+                            if (data.suggested_lat) params.set('ai_lat', data.suggested_lat);
+                            if (data.suggested_lng) params.set('ai_lng', data.suggested_lng);
+
+                            // close modal and redirect to submit page with prefill params
+                            createAiModal.hide();
+                            window.location = '<?= url('/user/submit_report.php') ?>' + (params.toString() ? ('?' + params.toString()) : '');
+                        }).catch(err => {
+                            if (loadEl) loadEl.style.display = 'none';
+                            if (errEl) { errEl.innerText = err.message || 'Unknown error'; errEl.style.display = 'block'; }
+                        });
+                    });
+                })();
         });
     </script>
 </body>
