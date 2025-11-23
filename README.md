@@ -220,3 +220,4 @@ This project is provided as-is for demonstration purposes.
 
 For issues or questions, please refer to the code comments or check the demo script (`demo-script.txt`) for a walkthrough of features.
 
+.
