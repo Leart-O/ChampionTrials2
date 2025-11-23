@@ -101,7 +101,7 @@ $success = isset($_GET['success']);
     </main>
 
         <!-- AI / Create Modal -->
-        <div class="modal fade" id="createAiModal" tabindex="-1" aria-hidden="true">
+        <!-- <div class="modal fade" id="createAiModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -109,10 +109,10 @@ $success = isset($_GET['success']);
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="d-flex gap-3 justify-content-center mb-3">
+                         <div class="d-flex gap-3 justify-content-center mb-3">
                             <button id="createBlankBtn" class="btn btn-outline-primary">Create Blank Report</button>
                             <button id="useAiBtn" class="btn btn-primary">Use AI Assistance</button>
-                        </div>
+                        </div> 
 
                         <div id="aiFormWrapper" style="display:none;">
                             <form id="aiAssistForm">
@@ -143,7 +143,7 @@ $success = isset($_GET['success']);
                     </div>
                 </div>
             </div>
-        </div>
+        </div> -->
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
