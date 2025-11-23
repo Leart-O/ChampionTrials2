@@ -47,20 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Handle mark as resolved
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'resolve') {
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $error = 'Invalid security token.';
-    } else {
-        $result = markReportResolved($reportId, $user['user_id']);
-        if ($result['success']) {
-            $success = true;
-            $report = getReport($reportId); // Refresh
-        } else {
-            $error = $result['error'] ?? 'Failed to mark as resolved.';
-        }
-    }
-}
 
 $csrfToken = generateCSRFToken();
 $imageBase64 = $report['image'] ? base64_encode($report['image']) : null;
@@ -161,15 +147,6 @@ $imageMime = 'image/jpeg'; // Default, could detect from BLOB
                                 </div>
                                 
                                 <button type="submit" class="btn btn-primary">Update Report</button>
-                            </form>
-                        <?php endif; ?>
-                        
-                        <?php if ($report['status_name'] !== 'Fixed'): ?>
-                            <hr>
-                            <form method="POST" action="" onsubmit="return confirm('Mark this report as resolved?');">
-                                <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                <input type="hidden" name="action" value="resolve">
-                                <button type="submit" class="btn btn-success">Mark as Resolved</button>
                             </form>
                         <?php endif; ?>
                     </div>

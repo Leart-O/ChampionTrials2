@@ -11,6 +11,32 @@ require_once __DIR__ . '/../../app/authorities.php';
 
 requireRole('Municipality Head');
 
+// Handle AJAX request for getting updated AI priorities
+if (isset($_GET['get_ai_priorities'])) {
+    header('Content-Type: application/json');
+    $reportId = intval($_GET['report_id'] ?? 0);
+    
+    if ($reportId) {
+        $pdo = getDB();
+        $stmt = $pdo->prepare("
+            SELECT al.report_id, al.priority, al.reason, al.created_at
+            FROM ai_logs al
+            WHERE al.report_id = :report_id
+            ORDER BY al.created_at DESC
+            LIMIT 1
+        ");
+        $stmt->execute(['report_id' => $reportId]);
+        $row = $stmt->fetch();
+        
+        if ($row) {
+            echo json_encode(['aiPriorities' => [$row['report_id'] => $row]]);
+        } else {
+            echo json_encode(['aiPriorities' => []]);
+        }
+    }
+    exit;
+}
+
 $user = getCurrentUser();
 $reports = getAllActiveReports(1000, 30);
 
@@ -224,14 +250,12 @@ $statuses = $stmt->fetchAll();
                                     <div class="mt-2 d-flex gap-2">
                                         <a href="<?= url('/municipality/report_view.php?id=' . $report['report_id']) ?>" 
                                            class="btn btn-sm btn-outline-primary">View</a>
-                                        <form method="POST" action="" style="display: inline;" onsubmit="return confirm('Re-run AI priority analysis for this report?');">
-                                            <input type="hidden" name="csrf_token" value="<?= h($csrfToken) ?>">
-                                            <input type="hidden" name="action" value="priority">
-                                            <input type="hidden" name="report_id" value="<?= $report['report_id'] ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-info" title="Re-run AI Priority Analysis">
-                                                ↻ Re-run
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn btn-sm btn-outline-info rerun-ai-btn" 
+                                                data-report-id="<?= $report['report_id'] ?>"
+                                                data-csrf-token="<?= h($csrfToken) ?>"
+                                                title="Re-run AI Priority Analysis">
+                                            ↻ Re-run
+                                        </button>
                                     </div>
                                 </div>
                             <?php endforeach; ?>
@@ -240,7 +264,7 @@ $statuses = $stmt->fetchAll();
                 </div>
                 
                 <!-- Create Authority -->
-                <div class="card">
+                <!-- <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h5 class="card-title mb-0">Create New Authority</h5>
                         <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#createAuthorityForm" aria-expanded="false" aria-controls="createAuthorityForm">
@@ -291,7 +315,7 @@ $statuses = $stmt->fetchAll();
                             </form>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
     </main>
@@ -301,7 +325,47 @@ $statuses = $stmt->fetchAll();
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
         const reports = <?= json_encode($reports) ?>;
-        const aiPriorities = <?= json_encode($aiPriorities) ?>;
+        let aiPriorities = <?= json_encode($aiPriorities) ?>;
+        let map;
+        let markersByReportId = {};
+        
+        function getPriorityBorder(priority) {
+            let borderColor = 'transparent';
+            let borderWidth = '2px';
+            if (priority >= 5) {
+                borderColor = '#dc3545'; // Red for highest priority
+                borderWidth = '4px';
+            } else if (priority >= 4) {
+                borderColor = '#fd7e14'; // Orange for high priority (different from pending)
+                borderWidth = '3px';
+            } else if (priority >= 3) {
+                borderColor = '#0dcaf0'; // Cyan for medium priority
+                borderWidth = '2px';
+            }
+            return { borderColor, borderWidth };
+        }
+        
+        function updateMarkerIcon(reportId, report) {
+            if (!markersByReportId[reportId]) return;
+            
+            const marker = markersByReportId[reportId];
+            const aiData = aiPriorities[reportId] || {};
+            const priority = aiData.priority || 1;
+            
+            // Status-based base color
+            let color = 'gray';
+            if (report.status_name === 'Pending') color = '#ffc107';
+            else if (report.status_name === 'In-Progress') color = '#0dcaf0';
+            else if (report.status_name === 'Fixed') color = '#198754';
+            
+            const { borderColor, borderWidth } = getPriorityBorder(priority);
+            
+            marker.setIcon(L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 ${borderWidth} ${borderColor};"></div>`,
+                iconSize: [24, 24]
+            }));
+        }
         
         document.addEventListener('DOMContentLoaded', function() {
             try {
@@ -313,7 +377,7 @@ $statuses = $stmt->fetchAll();
                 }
                 
                 // Initialize map centered on Pristina, Kosovo
-                const map = L.map('map').setView([42.6026, 20.9030], 13);
+                map = L.map('map').setView([42.6026, 20.9030], 13);
                 
                 // Add OpenStreetMap tiles
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -322,66 +386,57 @@ $statuses = $stmt->fetchAll();
                     subdomains: ['a','b','c']
                 }).addTo(map);
             
-            const markers = L.markerClusterGroup();
-            
-            reports.forEach(function(report) {
-                if (report.latitude && report.longitude) {
-                    const lat = parseFloat(report.latitude);
-                    const lng = parseFloat(report.longitude);
-                    
-                    const aiData = aiPriorities[report.report_id] || {};
-                    const priority = aiData.priority || 1;
-                    
-                    // Status-based base color
-                    let color = 'gray';
-                    if (report.status_name === 'Pending') color = '#ffc107'; // Bootstrap warning (orange/yellow)
-                    else if (report.status_name === 'In-Progress') color = '#0dcaf0'; // Bootstrap info (cyan/blue)
-                    else if (report.status_name === 'Fixed') color = '#198754'; // Bootstrap success (green)
-                    
-                    // Priority-based border: higher priority = thicker, more visible border
-                    let borderColor = 'transparent';
-                    let borderWidth = '2px';
-                    if (priority >= 5) {
-                        borderColor = '#dc3545'; // Red for highest priority
-                        borderWidth = '4px';
-                    } else if (priority >= 4) {
-                        borderColor = '#fd7e14'; // Orange for high priority (different from pending)
-                        borderWidth = '3px';
-                    } else if (priority >= 3) {
-                        borderColor = '#0dcaf0'; // Cyan for medium priority
-                        borderWidth = '2px';
+                const markers = L.markerClusterGroup();
+                
+                reports.forEach(function(report) {
+                    if (report.latitude && report.longitude) {
+                        const lat = parseFloat(report.latitude);
+                        const lng = parseFloat(report.longitude);
+                        
+                        const aiData = aiPriorities[report.report_id] || {};
+                        const priority = aiData.priority || 1;
+                        
+                        // Status-based base color
+                        let color = 'gray';
+                        if (report.status_name === 'Pending') color = '#ffc107';
+                        else if (report.status_name === 'In-Progress') color = '#0dcaf0';
+                        else if (report.status_name === 'Fixed') color = '#198754';
+                        
+                        const { borderColor, borderWidth } = getPriorityBorder(priority);
+                        
+                        const marker = L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 ${borderWidth} ${borderColor};"></div>`,
+                                iconSize: [24, 24]
+                            })
+                        });
+                        
+                        // Store marker reference for updates
+                        markersByReportId[report.report_id] = marker;
+                        
+                        // Image is already base64 encoded from PHP, or null
+                        const imageTag = report.image_base64 ? `<img src="data:image/jpeg;base64,${report.image_base64}" style="max-width: 200px; max-height: 150px;" class="img-thumbnail mb-2">` : '';
+                        
+                        marker.bindPopup(`
+                            <div style="min-width: 250px;">
+                                <h6>${report.title}</h6>
+                                ${imageTag}
+                                <p class="mb-1"><small>${report.description.substring(0, 100)}...</small></p>
+                                <p class="mb-1"><strong>Status:</strong> ${report.status_name}</p>
+                                <p class="mb-1"><strong>Priority:</strong> ${priority}/5</p>
+                                <p class="mb-1"><small>Reporter: ${report.username || 'Anonymous'}</small></p>
+                                <p class="mb-2"><small>${new Date(report.created_at).toLocaleString()}</small></p>
+                                <a href="<?= url('/municipality/report_view.php') ?>?id=${report.report_id}" class="btn btn-sm btn-primary" style="text-decoration: none; color: white;">View Details</a>
+                            </div>
+                        `);
+                        
+                        markers.addLayer(marker);
                     }
-                    
-                    const marker = L.marker([lat, lng], {
-                        icon: L.divIcon({
-                            className: 'custom-marker',
-                            html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 0 ${borderWidth} ${borderColor};"></div>`,
-                            iconSize: [24, 24]
-                        })
-                    });
-                    
-                    // Image is already base64 encoded from PHP, or null
-                    const imageTag = report.image_base64 ? `<img src="data:image/jpeg;base64,${report.image_base64}" style="max-width: 200px; max-height: 150px;" class="img-thumbnail mb-2">` : '';
-                    
-                    marker.bindPopup(`
-                        <div style="min-width: 250px;">
-                            <h6>${report.title}</h6>
-                            ${imageTag}
-                            <p class="mb-1"><small>${report.description.substring(0, 100)}...</small></p>
-                            <p class="mb-1"><strong>Status:</strong> ${report.status_name}</p>
-                            <p class="mb-1"><strong>Priority:</strong> ${priority}/5</p>
-                            <p class="mb-1"><small>Reporter: ${report.username || 'Anonymous'}</small></p>
-                            <p class="mb-2"><small>${new Date(report.created_at).toLocaleString()}</small></p>
-                            <a href="<?= url('/municipality/report_view.php') ?>?id=${report.report_id}" class="btn btn-sm btn-primary" style="text-decoration: none; color: white;">View Details</a>
-                        </div>
-                    `);
-                    
-                    markers.addLayer(marker);
-                }
-            });
-            
-            map.addLayer(markers);
-            
+                });
+                
+                map.addLayer(markers);
+                
                 // Fit bounds if we have reports, otherwise keep default view
                 if (reports.length > 0) {
                     const bounds = reports
@@ -391,6 +446,73 @@ $statuses = $stmt->fetchAll();
                         map.fitBounds(bounds, { padding: [50, 50] });
                     }
                 }
+                
+                // Handle Re-run AI button clicks
+                document.querySelectorAll('.rerun-ai-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        if (!confirm('Re-run AI priority analysis for this report?')) {
+                            return;
+                        }
+                        
+                        const reportId = this.getAttribute('data-report-id');
+                        const csrfToken = this.getAttribute('data-csrf-token');
+                        const btn = this;
+                        
+                        // Disable button during request
+                        btn.disabled = true;
+                        btn.innerHTML = '⏳ Analyzing...';
+                        
+                        fetch('<?= url('/municipality/dashboard.php') ?>', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: new URLSearchParams({
+                                'action': 'priority',
+                                'report_id': reportId,
+                                'csrf_token': csrfToken
+                            })
+                        })
+                        .then(response => response.json())
+                        .catch(() => {
+                            // Server may not return JSON, that's ok - reload page
+                            location.reload();
+                        })
+                        .then(data => {
+                            // Fetch updated AI priorities
+                            return fetch('<?= url('/municipality/dashboard.php') ?>?get_ai_priorities=1&report_id=' + reportId, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data && data.aiPriorities) {
+                                // Update aiPriorities object
+                                aiPriorities = { ...aiPriorities, ...data.aiPriorities };
+                                
+                                // Find the report and update marker
+                                const report = reports.find(r => r.report_id == reportId);
+                                if (report) {
+                                    updateMarkerIcon(reportId, report);
+                                }
+                                
+                                // Reload page to update the priority queue list
+                                location.reload();
+                            }
+                        })
+                        .catch(error => {
+                            console.log('Error:', error);
+                            // Fallback: reload page
+                            location.reload();
+                        });
+                    });
+                });
+                
             } catch (error) {
                 console.error('Error initializing map:', error);
             }
