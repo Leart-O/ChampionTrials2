@@ -69,6 +69,7 @@ if (isLoggedIn()) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="<?= url('/assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= url('/assets/css/tours.css') ?>">>
     <style>
         html {
             height: 100%;
@@ -173,6 +174,41 @@ if (isLoggedIn()) {
                             </svg>
                         </div>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- House Tours Section -->
+        <section class="py-5" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));">
+            <div class="container">
+                <h2 class="text-center mb-3 fw-bold text-gradient">Meet Your Guide</h2>
+                <p class="text-center text-muted mb-5" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+                    New to CityCare? Choose one of our four house guides to take a personalized tour of the platform. Each guide has their own unique style and perspective!
+                </p>
+                <div class="row g-4 justify-content-center">
+                    <?php
+                    require_once __DIR__ . '/../app/tours.php';
+                    $tours = getAllTours();
+                    foreach ($tours as $tour):
+                        $tourData = getTourData($tour);
+                    ?>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card h-100 tour-card" style="border: 2px solid <?= htmlspecialchars($tourData['color']) ?>; cursor: pointer; transition: all 0.3s ease;" onclick="startTour('<?= htmlspecialchars($tour) ?>')" role="button">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <div style="width: 80px; height: 80px; border-radius: 12px; background: linear-gradient(135deg, <?= htmlspecialchars($tourData['color']) ?>20, <?= htmlspecialchars($tourData['color']) ?>40); margin: 0 auto; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 32px; color: <?= htmlspecialchars($tourData['color']) ?>;">
+                                        <?= htmlspecialchars(strtoupper($tourData['name'][0])) ?>
+                                    </div>
+                                </div>
+                                <h5 class="fw-bold mb-2" style="color: <?= htmlspecialchars($tourData['color']) ?>;"><?= htmlspecialchars($tourData['title']) ?></h5>
+                                <p class="text-muted small mb-3"><?= htmlspecialchars($tourData['description']) ?></p>
+                                <button class="btn btn-sm" style="background-color: <?= htmlspecialchars($tourData['color']) ?>; color: white; border: none;">
+                                    Start Tour
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </section>
@@ -482,6 +518,7 @@ if (isLoggedIn()) {
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="<?= url('/assets/js/tours.js') ?>"></script>
 </body>
 </html>
 

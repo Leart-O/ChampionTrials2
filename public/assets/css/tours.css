@@ -1,0 +1,449 @@
+/**
+ * CityCare House Tour Styling
+ * Character animations, dialog bubbles, and UI elements
+ */
+
+/* ==================== Container & Layout ==================== */
+
+.tour-character-container {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 15px;
+    animation: slideInUp 0.4s ease-out;
+}
+
+.tour-character-container.fade-out {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+/* ==================== Character Avatar ==================== */
+
+.tour-character-avatar {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    animation: characterBounce 0.5s ease-out;
+}
+
+.character-image-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(240, 240, 240, 0.8));
+}
+
+.character-image {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-size: contain;
+    background-position: center;
+}
+
+/* ==================== Dialog Bubble ==================== */
+
+.tour-dialog-bubble {
+    position: relative;
+    max-width: 420px;
+    min-width: 280px;
+    width: 90vw;
+    max-height: 70vh;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    border: 2px solid;
+    overflow: hidden;
+    animation: slideInUp 0.4s ease-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.tour-dialog-bubble.dialog-enter {
+    animation: dialogBounce 0.3s ease-out;
+}
+
+/* Speech bubble tail (pointer toward character) */
+.tour-dialog-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    right: 20px;
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 0 solid transparent;
+    border-top: 10px solid white;
+    border-right: 10px solid transparent;
+    filter: drop-shadow(0 -2px 2px rgba(0, 0, 0, 0.1));
+}
+
+/* ==================== Dialog Header ==================== */
+
+.dialog-header {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.dialog-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: inherit;
+    margin: 0;
+}
+
+.dialog-close-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.dialog-close-btn:hover {
+    transform: scale(1.2);
+}
+
+/* ==================== Dialog Content ==================== */
+
+.dialog-content {
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 80px;
+    max-height: 400px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.dialog-message {
+    margin: 0 0 8px 0;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #333;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.dialog-style {
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+/* ==================== Dialog Footer ==================== */
+
+.dialog-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid #eee;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.step-counter {
+    font-size: 12px;
+    color: #999;
+    font-weight: 600;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* ==================== Tour Buttons ==================== */
+
+.tour-btn-prev,
+.tour-btn-next {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 70px;
+}
+
+.tour-btn-prev:hover,
+.tour-btn-next:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+.tour-btn-next {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border-color: #2563eb;
+}
+
+.tour-btn-next:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: #1d4ed8;
+}
+
+/* Disabled state */
+.tour-btn-prev:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ==================== Overlay & Highlight ==================== */
+
+.tour-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9998;
+    pointer-events: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.tour-highlight {
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5) !important;
+    pointer-events: none !important;
+}
+
+/* Pulse animation for highlight */
+@keyframes tourPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+    }
+}
+
+/* ==================== Animations ==================== */
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.5;
+    }
+}
+
+@keyframes characterBounce {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes dialogBounce {
+    0% {
+        transform: scale(0.95);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* ==================== Tour Option in Navbar ==================== */
+
+.tour-option {
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+}
+
+.tour-option:hover {
+    background-color: rgba(59, 130, 246, 0.05) !important;
+}
+
+.tour-icon-small {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* ==================== Responsive Design ==================== */
+
+@media (max-width: 768px) {
+    .tour-character-container {
+        bottom: 20px;
+        right: 20px;
+    }
+
+    .tour-character-avatar {
+        width: 100px;
+        height: 100px;
+    }
+
+    .tour-dialog-bubble {
+        max-width: 90vw;
+        min-width: 240px;
+        width: 90vw;
+        max-height: 65vh;
+    }
+
+    .dialog-content {
+        max-height: 300px;
+    }
+
+    .dialog-message {
+        font-size: 14px;
+    }
+
+    .dialog-style {
+        font-size: 12px;
+    }
+
+    .tour-btn-prev,
+    .tour-btn-next {
+        padding: 5px 10px;
+        font-size: 11px;
+        min-width: 60px;
+    }
+
+    .step-counter {
+        font-size: 11px;
+        min-width: 45px;
+    }
+}
+
+@media (max-width: 480px) {
+    .tour-character-container {
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .tour-character-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .tour-dialog-bubble {
+        max-width: 95vw;
+        min-width: 200px;
+        width: 95vw;
+        max-height: 60vh;
+    }
+
+    .dialog-content {
+        padding: 12px;
+        max-height: 250px;
+    }
+
+    .dialog-footer {
+        padding: 8px 12px;
+        flex-wrap: wrap;
+    }
+
+    .tour-btn-prev,
+    .tour-btn-next {
+        padding: 4px 8px;
+        font-size: 10px;
+        min-width: 50px;
+    }
+}
+
+/* ==================== Dark Mode Support ==================== */
+
+@media (prefers-color-scheme: dark) {
+    .tour-dialog-bubble {
+        background: #2d3748;
+        color: #fff;
+    }
+
+    .dialog-message {
+        color: #e2e8f0;
+    }
+
+    .dialog-style {
+        color: #a0aec0;
+    }
+
+    .dialog-footer {
+        border-top-color: #4a5568;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tour-btn-prev,
+    .tour-btn-next {
+        border-color: #4a5568;
+        background: #1a202c;
+        color: #e2e8f0;
+    }
+
+    .tour-btn-prev:hover,
+    .tour-btn-next:hover {
+        background: #2d3748;
+        border-color: #5a6a7a;
+    }
+
+    .tour-btn-next {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        border-color: #2563eb;
+    }
+
+    .character-image-wrapper {
+        background: linear-gradient(135deg, rgba(45, 55, 72, 0.8), rgba(30, 35, 50, 0.8));
+    }
+}
